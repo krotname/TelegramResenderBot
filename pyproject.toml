@@ -1,0 +1,126 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telegram-resender"
+version = "0.1.0"
+description = "Telegram bot that forwards authorized user messages to a target chat."
+readme = "README.md"
+license = "MIT"
+keywords = ["telegram", "bot", "resender", "aiogram", "pydantic", "pytest"]
+requires-python = ">=3.12"
+authors = [{ name = "krotname" }]
+license-files = ["LICENSE"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Chat",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+  "aiogram>=3.28.2,<4.0.0",
+  "pydantic>=2.8.0,<3.0.0",
+  "pydantic-settings>=2.5.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.11.0,<2.0.0",
+  "pytest>=9.0.0,<10.0.0",
+  "pytest-asyncio>=0.24.0,<1.0.0",
+  "pytest-cov>=5.0.0,<6.0.0",
+  "pytest-mock>=3.14.0,<4.0.0",
+  "ruff>=0.6.0,<0.8.0",
+  "build>=1.2.0,<2.0.0",
+]
+
+[project.scripts]
+telegram-resender = "telegram_resender.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/krotname/Bot-Telegram-Resender"
+Source = "https://github.com/krotname/Bot-Telegram-Resender"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = [
+  "--strict-markers",
+  "--strict-config",
+  "--cov=telegram_resender",
+  "--cov-report=term-missing",
+  "--cov-fail-under=90",
+]
+testpaths = [
+  "tests/unit",
+  "tests/integration",
+  "tests/conversation",
+  "tests/security",
+]
+pythonpath = [
+  "src",
+]
+asyncio_mode = "auto"
+markers = [
+  "unit: Unit tests",
+  "integration: Integration tests",
+  "conversation: Bot conversation tests",
+  "security: Security checks and hardening tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+lint.select = [
+  "E",
+  "W",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM",
+]
+lint.ignore = [
+  "SIM102",
+]
+lint.unfixable = ["B007"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = ["src"]
+explicit_package_bases = true
+warn_unused_configs = true
+warn_unreachable = true
+show_error_codes = true
+
+[tool.coverage.run]
+branch = true
+source = ["telegram_resender"]
+omit = [
+  "src/telegram_resender/__main__.py",
+]
+
+[tool.coverage.report]
+skip_empty = true
+skip_covered = false
+precision = 2
+show_missing = true
+fail_under = 90
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
