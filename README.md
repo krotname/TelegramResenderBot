@@ -1,11 +1,11 @@
 # Telegram Resender
 
-[![CI](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml)
-[![Scorecard](https://api.scorecard.dev/projects/github.com/krotname/Bot-Telegram-Resender/badge)](https://scorecard.dev/viewer/?uri=github.com/krotname/Bot-Telegram-Resender)
-[![PyPI](https://img.shields.io/pypi/pyversions/telegram-resender.svg)](https://pypi.org/project/telegram-resender/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Coverage](https://img.shields.io/badge/coverage-90%2B-green)
+[![CI](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml/badge.svg)](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml/badge.svg)](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml)
+[![Scorecard](https://github.com/krotname/TelegramResenderBot/actions/workflows/scorecard.yml/badge.svg)](https://github.com/krotname/TelegramResenderBot/actions/workflows/scorecard.yml)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776ab)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Coverage Gate](https://img.shields.io/badge/coverage%20gate-90%25%2B-2ea44f)](docs/testing.md)
 
 [🇷🇺 README](README.ru.md)
 

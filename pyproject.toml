@@ -45,8 +45,8 @@ dev = [
 telegram-resender = "telegram_resender.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/krotname/Bot-Telegram-Resender"
-Source = "https://github.com/krotname/Bot-Telegram-Resender"
+Homepage = "https://github.com/krotname/TelegramResenderBot"
+Source = "https://github.com/krotname/TelegramResenderBot"
 
 [tool.pytest.ini_options]
 minversion = "9.0"
