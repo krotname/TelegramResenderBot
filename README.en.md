@@ -93,6 +93,14 @@ pytest
 - Conversation tests: `tests/conversation/*`
 - Security tests: `tests/security/*`
 
+## Branch protection
+
+Branch protection rules are applied automatically for `master` (and `main` if it appears)
+through:
+
+- [docs/branch-protection.md](docs/branch-protection.md)
+- [.github/workflows/branch-protection.yml](.github/workflows/branch-protection.yml)
+
 ## Architecture
 
 - `whitelist.py` — input parsing and membership checks.

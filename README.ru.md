@@ -59,6 +59,14 @@ python -m pip install -r requirements-dev.txt
 pytest
 ```
 
+## Защита веток
+
+Для `master` (и для `main` после его появления) настроена автоматическая защита ветки с
+обязательными check’ами (`lint`, `types`, `tests`, `security`, `CodeQL`) и обязательным ревью.
+
+- [docs/branch-protection.md](docs/branch-protection.md)
+- [.github/workflows/branch-protection.yml](.github/workflows/branch-protection.yml)
+
 ## Вклад в проект
 
 Смотрите [CONTRIBUTING.md](CONTRIBUTING.md) и [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

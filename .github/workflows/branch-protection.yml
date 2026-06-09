@@ -1,0 +1,36 @@
+name: Branch protection
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  create:
+  schedule:
+    - cron: "0 10 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enforce:
+    name: Enforce branch protection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Apply protection rules for main/master
+        env:
+          GH_TOKEN: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
+          BRANCH_PROTECTION_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "BRANCH_PROTECTION_TOKEN is not configured; skipping branch protection."
+            exit 0
+          fi
+
+          chmod +x scripts/setup-branch-protection.sh
+          ./scripts/setup-branch-protection.sh \
+            "${BRANCH_PROTECTION_REPO}" \
+            main master

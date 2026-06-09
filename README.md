@@ -72,6 +72,14 @@ python -m pip install -r requirements-dev.txt
 pytest
 ```
 
+## Защита веток
+
+В репозитории настроена автоматическая защита для `master` (и `main`, если он будет создан), включая обязательные проверки:
+`lint`, `types`, `tests`, `security`, `CodeQL`, и обязательное ревью.
+
+- [docs/branch-protection.md](docs/branch-protection.md)
+- [.github/workflows/branch-protection.yml](.github/workflows/branch-protection.yml)
+
 ### Категории тестов
 
 - `tests/unit/*` — unit
