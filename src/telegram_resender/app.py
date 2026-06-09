@@ -66,7 +66,11 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
     async def forward_text(message: Message) -> None:
         decision = service.handle_text(incoming_from_message(message))
         if decision.should_forward and decision.forward_text is not None:
-            await message.bot.send_message(settings.forward_chat_id, decision.forward_text)
+            bot = message.bot
+            if bot is None:
+                msg = "Telegram message is not bound to a bot"
+                raise RuntimeError(msg)
+            await bot.send_message(settings.forward_chat_id, decision.forward_text)
             LOGGER.info("Forwarded message from Telegram user")
         else:
             LOGGER.info("Rejected message: %s", decision.reason)
@@ -86,7 +90,7 @@ def create_dispatcher(settings: Settings, service: ResenderService) -> Dispatche
 async def run_polling(settings: Settings | None = None) -> None:  # pragma: no cover
     """Run the bot in long polling mode."""
 
-    loaded_settings = settings or Settings()
+    loaded_settings = settings or Settings()  # type: ignore[call-arg]
     logging.basicConfig(
         level=loaded_settings.log_level,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

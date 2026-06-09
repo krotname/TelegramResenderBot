@@ -3,9 +3,9 @@
 from pathlib import Path
 
 from telegram_resender.app import build_service
+from telegram_resender.messages import REQUEST_ACCEPTED_MESSAGE
 from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.settings import Settings
-from telegram_resender.messages import REQUEST_ACCEPTED_MESSAGE
 
 
 def test_build_service_uses_project_files(tmp_path: Path) -> None:
