@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose an improvement for Telegram Resender.
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is currently missing?
+      validations:
+        required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change in behavior and migration impact.
+      validations:
+        required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other approaches considered.
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - label: This change is backward-compatible
+          required: false
+        - label: Tests will be updated/added
+          required: false
+        - label: Documentation will be updated
+          required: false

@@ -1,0 +1,4 @@
+# Telegram usernames allowed to submit requests.
+# Use one username per line. Leading @ and case do not matter.
+building_admin
+@gate_worker
