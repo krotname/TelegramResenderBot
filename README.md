@@ -3,120 +3,104 @@
 [![CI](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml)
 [![Scorecard](https://api.scorecard.dev/projects/github.com/krotname/Bot-Telegram-Resender/badge)](https://scorecard.dev/viewer/?uri=github.com/krotname/Bot-Telegram-Resender)
+[![codecov](https://codecov.io/gh/krotname/Bot-Telegram-Resender/branch/master/graph/badge.svg)](https://codecov.io/gh/krotname/Bot-Telegram-Resender)
 [![PyPI](https://img.shields.io/pypi/pyversions/telegram-resender.svg)](https://pypi.org/project/telegram-resender/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Coverage](https://img.shields.io/badge/coverage-90%2B-green)
 
-[🇷🇺 README](README.ru.md)
+[English README](README.en.md)
 
-## Overview
+## Что это
 
-Telegram Resender is a focused bot that checks incoming text messages against a whitelist of
-Telegram usernames and forwards approved requests to a configured target chat.
+Бот пересылает текстовые сообщения из Telegram в целевой чат только от пользователей,
+которые есть в `whitelist`.
 
-The project is intentionally small and practical:
+## Основной сценарий
 
-- environment-based configuration only
-- typed settings and dependency injection
-- separated domain logic and transport handler layer
-- strict linters and tests as CI defaults
+- пользователь отправляет текст;
+- сообщение валидируется и нормализуется;
+- если пользователь в белом списке — формируется предсказуемый текст и пересылается в
+  `forward_chat_id`;
+- если нет — возвращается сообщение об отказе.
 
-## Features
+## Быстрый старт
 
-- `/start`, `/help`, `/avto` commands
-- whitelist-based access control
-- deterministic formatting of forwarded messages
-- strict startup validation for secrets
-- unit, integration, conversation and security test categories
-- GitHub Actions CI (lint, typing, tests, CodeQL, dependency review, Scorecard)
-
-## Quick start
-
-1. Install Python 3.12+.
-2. Create `.env` based on `.env.example`.
-3. Run:
+1. Установите Python 3.12+.
+2. Создайте `.env` на основе `.env.example`.
+3. Установите зависимости через pip:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
-pip install -e .[dev]
+.venv\\Scripts\\activate
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+# или в один шаг:
+python -m pip install -e .[dev]
 copy .env.example .env      # Windows
-# or: cp .env.example .env  # Linux/macOS
+# или: cp .env.example .env  # Linux/macOS
 python -m telegram_resender
 ```
 
-Windows and Linux share the same startup command.
+## Конфигурация
 
-## Configuration
-
-All settings are read from environment variables (or `.env`).
-
-| Variable | Required | Description |
+| Переменная | Обязательна | Описание |
 |---|---|---|
-| `TELEGRAM_RESENDER_BOT_TOKEN` | yes | Telegram bot token |
-| `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | yes | target chat/group ID |
-| `TELEGRAM_RESENDER_WHITELIST_PATH` | no | CSV path, default `whitelist.csv` |
-| `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
-| `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned when access denied |
-| `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
-| `TELEGRAM_RESENDER_POLLING_TIMEOUT` | no | Polling timeout, default `30` |
+| `TELEGRAM_RESENDER_BOT_TOKEN` | да | токен Telegram-бота |
+| `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | да | ID чата/группы для пересылки |
+| `TELEGRAM_RESENDER_WHITELIST_PATH` | нет | путь к CSV-файлу (по умолчанию `whitelist.csv`) |
+| `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | нет | текст на успешное принятие |
+| `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | нет | текст при отказе |
+| `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL` |
+| `TELEGRAM_RESENDER_POLLING_TIMEOUT` | нет | timeout для polling, по умолчанию `30` |
 
-Whitelist format:
+## Установка зависимостей и качество
 
-```csv
-# whitelist.csv
-alice
-@bob
-```
+- Основные зависимости: `requirements.txt`
+- Зависимости разработки: `requirements-dev.txt`
 
-## Development
+Ключевые проверки:
+
+- `ruff` (линт/формат)
+- `mypy` (строгая типизация)
+- `pytest` (unit/integration/conversation/security)
+- `CodeQL`, `Codecov`, Dependabot, Scorecard
+
+## Запуск тестов
 
 ```bash
-pip install -e .[dev]
-ruff check src tests
-ruff format src tests
-ruff check --fix src tests
-mypy src
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 pytest
 ```
 
-### Test categories
+### Категории тестов
 
-- Unit tests: `tests/unit/*`
-- Integration tests: `tests/integration/*`
-- Conversation tests: `tests/conversation/*`
-- Security tests: `tests/security/*`
+- `tests/unit/*` — unit
+- `tests/integration/*` — интеграционные
+- `tests/conversation/*` — сценарии поведения
+- `tests/security/*` — проверки безопасности конфигурации
 
-## Architecture
+## Защита веток
 
-- `whitelist.py` — input parsing and membership checks.
-- `service.py` — pure decision logic and policy.
-- `formatting.py` — deterministic outbound payloads.
-- `app.py` — aiogram handlers and Telegram transport wiring.
-- `settings.py` — validated configuration.
-- `cli.py` — process start command.
-- `__main__.py` — module entrypoint alias for `python -m telegram_resender`.
+Ветка `master` имеет включённую защиту. Для поддержки `main` выполните:
 
-## Contribution
+```powershell
+pwsh ./scripts/setup-branch-protection.ps1 -Repository krotname/Bot-Telegram-Resender
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Детали в [docs/branch-protection.md](docs/branch-protection.md).
 
-## Security
+## Архитектура
 
-See [SECURITY.md](SECURITY.md).
+- `whitelist.py` — чтение и нормализация белого списка;
+- `service.py` — бизнес-правила и решение `ForwardingDecision`;
+- `formatting.py` — форматирование пересылаемого текста;
+- `app.py` — адаптер Telegram (aiogram) к доменной модели;
+- `settings.py` — валидация конфигурации;
+- `cli.py` и `__main__.py` — запуск приложения.
 
-## License
+## Документация
 
-MIT License. See [LICENSE](LICENSE).
-
-## Design docs
-
+- [README.ru.md](README.ru.md) — дублированный русский вариант
+- [README.en.md](README.en.md) — английская версия
 - [Architecture](docs/architecture.md)
 - [Testing strategy](docs/testing.md)
-
----
-
-English and Russian users can find mirrored information in both languages:
-
-- [README.md (English)](README.md)
-- [README.ru.md (Russian)](README.ru.md)

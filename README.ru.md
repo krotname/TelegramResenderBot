@@ -3,11 +3,12 @@
 [![CI](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml/badge.svg)](https://github.com/krotname/Bot-Telegram-Resender/actions/workflows/codeql.yml)
 [![Scorecard](https://api.scorecard.dev/projects/github.com/krotname/Bot-Telegram-Resender/badge)](https://scorecard.dev/viewer/?uri=github.com/krotname/Bot-Telegram-Resender)
+[![codecov](https://codecov.io/gh/krotname/Bot-Telegram-Resender/branch/master/graph/badge.svg)](https://codecov.io/gh/krotname/Bot-Telegram-Resender)
 [![PyPI](https://img.shields.io/pypi/pyversions/telegram-resender.svg)](https://pypi.org/project/telegram-resender/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Coverage](https://img.shields.io/badge/coverage-90%2B-green)
 
-[English README](README.md)
+[English README](README.en.md)
 
 ## Что это
 
@@ -19,7 +20,10 @@
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
-pip install -e .[dev]
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+# или одной командой:
+python -m pip install -e .[dev]
 copy .env.example .env      # Windows
 # или: cp .env.example .env  # Linux/macOS
 python -m telegram_resender
@@ -50,6 +54,8 @@ alice
 Запуск:
 
 ```bash
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 pytest
 ```
 
