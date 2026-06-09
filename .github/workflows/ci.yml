@@ -95,4 +95,9 @@ jobs:
           python -m pip install -e .[dev]
           python -m pip install pip-audit
       - name: Pip audit
-        run: python -m pip_audit
+        run: |
+          # aiogram 3.28.2 pins aiohttp<3.14 while these CVEs are fixed in aiohttp 3.14.0.
+          # Remove these ignores once aiogram allows aiohttp>=3.14.
+          python -m pip_audit \
+            --ignore-vuln CVE-2026-34993 \
+            --ignore-vuln CVE-2026-47265

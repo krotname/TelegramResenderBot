@@ -24,7 +24,7 @@ class Whitelist:
         self._usernames = frozenset(normalized)
 
     @classmethod
-    def from_file(cls, path: Path) -> "Whitelist":
+    def from_file(cls, path: Path) -> Whitelist:
         """Load usernames from the first column of a CSV file.
 
         The CSV reader is intentionally used even for one-value-per-line files: it keeps
