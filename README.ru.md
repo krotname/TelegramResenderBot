@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml?query=branch%3Amaster)
 [![CodeQL](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml?query=branch%3Amaster)
-[![Scorecard](https://github.com/krotname/TelegramResenderBot/actions/workflows/scorecard.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/scorecard.yml?query=branch%3Amaster)
-[![Python](https://img.shields.io/badge/python-3.12%2B-3776ab)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Coverage Gate](https://img.shields.io/badge/coverage%20gate-90%25%2B-2ea44f)](docs/testing.md)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/krotname/TelegramResenderBot/badge)](https://securityscorecards.dev/viewer/?uri=github.com/krotname/TelegramResenderBot)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-3776ab)](https://www.python.org/downloads/)
 
 [English README](README.md)
 

@@ -20,11 +20,8 @@ GitHub Actions pipeline runs:
 - Pytest with branch coverage (`--cov-fail-under=90`)
 - Pip audit on lockless dependency set in env
 - CodeQL and dependency review
-- Scorecard via GitHub Actions, with SARIF upload to GitHub code scanning
-
-README badges use GitHub Actions badge URLs only. Do not use `api.scorecard.dev` or
-`api.securityscorecards.dev` badges for this repository because those external Scorecard APIs
-can return 404 for projects that are not published there.
+- OpenSSF Scorecard via GitHub Actions, with SARIF upload to GitHub code scanning and
+  `publish_results: true` for the public Scorecard API badge
 
 ## Adding tests
 1. Add a failing test first.

@@ -1,6 +1,9 @@
-name: Scorecard
+name: OpenSSF Scorecard
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     - cron: "0 2 * * 1"
   workflow_dispatch:
@@ -22,6 +25,8 @@ jobs:
           results_file: results.sarif
           results_format: sarif
           repository: ${{ github.repository }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_results: true
       - name: Upload to code scanning
         uses: github/codeql-action/upload-sarif@v4
         with:
