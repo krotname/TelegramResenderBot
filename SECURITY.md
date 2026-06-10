@@ -1,17 +1,28 @@
-﻿# Security
+# Security Policy
 
-Security by default:
+## Supported versions
 
-- Secrets are read from environment variables.
-- No tokens are stored in source files.
-- Startup validation blocks obvious placeholders.
+Security fixes are handled on the default branch and the latest public release line.
 
 ## Reporting vulnerabilities
 
-If you find a security issue, send it to repository maintainer privately with:
+Do not open a public issue for suspected vulnerabilities, bot tokens, chat IDs, secrets, or exploit details.
 
-- impact scope
-- reproduction steps
-- potential fix proposal
+Report vulnerabilities through GitHub private vulnerability reporting:
+https://github.com/krotname/TelegramResenderBot/security/advisories/new
 
-Please do not create public issues for sensitive reports.
+Include:
+
+- affected version or commit,
+- reproduction steps,
+- impact scope,
+- relevant configuration with secrets redacted,
+- suggested mitigation if available.
+
+The maintainer aims to acknowledge valid reports within 48 hours and provide a remediation timeline after the impact is confirmed.
+
+## Secure configuration
+
+- Secrets are read from environment variables.
+- Tokens and credentials must not be stored in source files.
+- Startup validation blocks obvious placeholder credentials.
