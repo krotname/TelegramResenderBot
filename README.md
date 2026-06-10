@@ -4,6 +4,7 @@
 [![CodeQL](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml?query=branch%3Amaster)
 [![Coverage Gate](https://img.shields.io/badge/coverage%20gate-90%25%2B-2ea44f)](docs/testing.md)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/krotname/TelegramResenderBot/badge)](https://securityscorecards.dev/viewer/?uri=github.com/krotname/TelegramResenderBot)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13150/badge)](https://www.bestpractices.dev/projects/13150)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776ab)](https://www.python.org/downloads/)
 
