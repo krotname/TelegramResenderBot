@@ -10,12 +10,14 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  id-token: write
 
 jobs:
   scorecard:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -24,7 +26,6 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          repository: ${{ github.repository }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           publish_results: true
       - name: Upload to code scanning
