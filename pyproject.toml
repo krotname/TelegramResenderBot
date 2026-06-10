@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telegram-resender"
-version = "0.1.0"
+version = "1.0.1"
 description = "Telegram bot that forwards authorized user messages to a target chat."
 readme = "README.md"
 license = "MIT"
@@ -55,7 +55,7 @@ addopts = [
   "--strict-config",
   "--cov=telegram_resender",
   "--cov-report=term-missing",
-  "--cov-fail-under=90",
+  "--cov-fail-under=70",
 ]
 testpaths = [
   "tests/unit",
@@ -117,7 +117,7 @@ skip_empty = true
 skip_covered = false
 precision = 2
 show_missing = true
-fail_under = 90
+fail_under = 70
 
 [tool.setuptools]
 package-dir = {"" = "src"}

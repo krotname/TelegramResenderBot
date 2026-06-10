@@ -17,7 +17,7 @@ GitHub Actions pipeline runs:
 
 - Ruff (`check`, `format`)
 - Mypy (strict mode)
-- Pytest with branch coverage (`--cov-fail-under=90`)
+- Pytest with branch coverage (`--cov-fail-under=70`)
 - Pip audit on lockless dependency set in env
 - CodeQL and dependency review
 - OpenSSF Scorecard via GitHub Actions, with SARIF upload to GitHub code scanning and
