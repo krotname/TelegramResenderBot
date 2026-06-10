@@ -12,7 +12,7 @@ from telegram_resender.messages import ACCESS_DENIED_MESSAGE, REQUEST_ACCEPTED_M
 
 
 class Settings(BaseSettings):
-    """Runtime settings with explicit validation for public deployment safety."""
+    """Runtime settings with explicit validation for safe startup."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -60,6 +60,6 @@ class Settings(BaseSettings):
     @field_validator("whitelist_path")
     @classmethod
     def normalize_whitelist_path(cls, value: Path) -> Path:
-        """Normalize path tokens while keeping relative deployment paths stable."""
+        """Normalize path tokens while keeping relative paths stable."""
 
         return value.expanduser()

@@ -28,7 +28,8 @@ The project is intentionally small and practical:
 - deterministic formatting of forwarded messages
 - strict startup validation for secrets
 - unit, integration, conversation and security test categories
-- GitHub Actions CI (lint, typing, tests, CodeQL, dependency review, Scorecard)
+- GitHub Actions CI (lint, typing, tests, CodeQL, dependency review)
+- scheduled and manual Scorecard workflow without an external API badge
 
 ## Quick start
 
