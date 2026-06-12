@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
@@ -15,6 +16,14 @@ from telegram_resender.settings import Settings
 from telegram_resender.whitelist import Whitelist
 
 LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class PendingRequest:
+    """Forwarding payload waiting for explicit user confirmation."""
+
+    request_id: str
+    forward_text: str
 
 
 def incoming_from_message(message: Message) -> IncomingMessage:
@@ -46,6 +55,8 @@ def build_service(settings: Settings) -> ResenderService:
         access_denied_message=messages.access_denied_unknown,
         missing_username_message=messages.access_denied_missing_username,
         invalid_request_message=messages.invalid_request,
+        missing_fields_message=messages.missing_fields,
+        locale=settings.locale,
     )
 
 
@@ -54,6 +65,7 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
 
     router = Router(name="telegram-resender")
     messages = settings.messages
+    pending_requests: dict[int, PendingRequest] = {}
 
     @router.message(Command("start"))
     async def start(message: Message) -> None:
@@ -71,10 +83,47 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
     async def template(message: Message) -> None:
         await message.answer(messages.template)
 
+    @router.message(Command("confirm"))
+    async def confirm_request(message: Message) -> None:
+        pending = pending_requests.pop(message.chat.id, None)
+        if pending is None:
+            await message.answer(messages.no_pending_request)
+            return
+        bot = message.bot
+        if bot is None:
+            msg = "Telegram message is not bound to a bot"
+            raise RuntimeError(msg)
+        await bot.send_message(settings.forward_chat_id, pending.forward_text)
+        LOGGER.info("Forwarded confirmed request from Telegram user")
+        await message.answer(messages.request_confirmed.format(request_id=pending.request_id))
+
+    @router.message(Command("cancel"))
+    async def cancel_request(message: Message) -> None:
+        pending = pending_requests.pop(message.chat.id, None)
+        if pending is None:
+            await message.answer(messages.no_pending_request)
+            return
+        await message.answer(messages.request_cancelled.format(request_id=pending.request_id))
+
     @router.message(F.text)
     async def forward_text(message: Message) -> None:
         decision = service.handle_text(incoming_from_message(message))
         if decision.should_forward and decision.forward_text is not None:
+            if settings.confirm_before_forward:
+                if decision.request_id is None:
+                    msg = "Forwarding decision is missing request_id"
+                    raise RuntimeError(msg)
+                pending_requests[message.chat.id] = PendingRequest(
+                    request_id=decision.request_id,
+                    forward_text=decision.forward_text,
+                )
+                await message.answer(
+                    messages.confirmation_prompt.format(
+                        request_id=decision.request_id,
+                        preview=decision.forward_text,
+                    )
+                )
+                return
             bot = message.bot
             if bot is None:
                 msg = "Telegram message is not bound to a bot"

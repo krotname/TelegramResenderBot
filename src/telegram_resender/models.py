@@ -43,3 +43,4 @@ class ForwardingDecision:
     response_text: str
     reason: DecisionReason
     forward_text: str | None = None
+    request_id: str | None = None

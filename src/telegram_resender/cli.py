@@ -58,6 +58,7 @@ def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
     print(f"Forward chat id: {settings.forward_chat_id}", file=stdout)
     print(f"Whitelist path: {_display_path(settings.whitelist_path)}", file=stdout)
     print(f"Whitelist users: {len(whitelist.usernames)}", file=stdout)
+    print(f"Confirm before forward: {settings.confirm_before_forward}", file=stdout)
     print(f"Polling timeout: {settings.polling_timeout}s", file=stdout)
     return 0
 

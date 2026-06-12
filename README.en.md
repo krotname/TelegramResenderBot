@@ -28,6 +28,7 @@ The project is intentionally small and practical:
 - localized Russian and English bot messages
 - separate guidance for unknown users, missing Telegram usernames, and incomplete requests
 - unsupported message guidance for photos, documents, stickers, and voice messages
+- required-field validation and optional confirmation before forwarding
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
@@ -62,6 +63,7 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | yes | target chat/group ID |
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | no | CSV path, default `whitelist.csv` |
 | `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
+| `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | no | `true` to show a preview and wait for `/confirm` |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
 | `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned to unknown users |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
@@ -88,6 +90,10 @@ Comment: meeting with facilities
 ```
 
 The bot currently accepts text only. Media and documents are not forwarded.
+
+Required fields are building, arrival date/time, vehicle, and license plate. With
+`TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD=true`, the bot shows a preview and only
+forwards after `/confirm`. `/cancel` discards the pending request.
 
 ## Development
 

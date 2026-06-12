@@ -21,7 +21,7 @@ class MessageFormatter:
         text = message.text.strip() or "<empty message>"
         lines = [
             "New Telegram request",
-            f"Request id: {self._format_request_id(message)}",
+            f"Request id: {self.format_request_id(message)}",
             f"Submitted at: {self._format_submitted_at(message)}",
             f"From: {self._format_user(message.user)}",
             f"Source chat: {message.chat_id}",
@@ -30,7 +30,9 @@ class MessageFormatter:
         ]
         return "\n".join(lines)
 
-    def _format_request_id(self, message: IncomingMessage) -> str:
+    def format_request_id(self, message: IncomingMessage) -> str:
+        """Build the stable request id shared between user and admin messages."""
+
         if message.message_id is not None:
             return f"tg-{message.chat_id}-{message.message_id}"
         fingerprint = hashlib.sha256(

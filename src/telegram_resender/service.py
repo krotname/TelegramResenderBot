@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import ForwardingDecision, IncomingMessage
+from telegram_resender.requests import format_missing_fields, parse_request
 from telegram_resender.whitelist import Whitelist
 
 
@@ -18,6 +19,8 @@ class ResenderService:
         access_denied_message: str,
         missing_username_message: str,
         invalid_request_message: str,
+        missing_fields_message: str,
+        locale: str,
     ) -> None:
         self._whitelist = whitelist
         self._formatter = formatter
@@ -25,6 +28,8 @@ class ResenderService:
         self._access_denied_message = access_denied_message
         self._missing_username_message = missing_username_message
         self._invalid_request_message = invalid_request_message
+        self._missing_fields_message = missing_fields_message
+        self._locale = locale
 
     def handle_text(self, message: IncomingMessage) -> ForwardingDecision:
         """Decide whether a text message should be forwarded.
@@ -48,18 +53,32 @@ class ResenderService:
                 reason="unknown_username",
             )
 
-        if not self._looks_like_request(message.text):
+        if not message.text.strip() or not self._looks_like_request(message.text):
             return ForwardingDecision(
                 should_forward=False,
                 response_text=self._invalid_request_message,
                 reason="invalid_request",
             )
 
+        parsed_request = parse_request(message.text)
+        if not parsed_request.is_complete:
+            missing_fields = format_missing_fields(
+                parsed_request.missing_fields,
+                locale=self._locale,
+            )
+            return ForwardingDecision(
+                should_forward=False,
+                response_text=self._missing_fields_message.format(fields=missing_fields),
+                reason="invalid_request",
+            )
+
+        request_id = self._formatter.format_request_id(message)
         return ForwardingDecision(
             should_forward=True,
             response_text=self._request_accepted_message,
             reason="allowed_username",
             forward_text=self._formatter.format_forward(message),
+            request_id=request_id,
         )
 
     def _looks_like_request(self, text: str) -> bool:

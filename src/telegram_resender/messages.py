@@ -38,6 +38,11 @@ class MessageCatalog:
     access_denied_missing_username: str
     unsupported_message: str
     invalid_request: str
+    missing_fields: str
+    confirmation_prompt: str
+    request_confirmed: str
+    request_cancelled: str
+    no_pending_request: str
 
     def with_overrides(
         self,
@@ -80,6 +85,17 @@ RU_MESSAGES = MessageCatalog(
         "Заявка выглядит неполной. Отправьте объект, время прибытия, модель автомобиля "
         "и госномер. Шаблон доступен по команде /template."
     ),
+    missing_fields=(
+        "Заявка неполная. Заполните обязательные поля: {fields}. "
+        "Шаблон доступен по команде /template."
+    ),
+    confirmation_prompt=(
+        "Проверьте заявку {request_id}:\n\n{preview}\n\n"
+        "Отправьте /confirm, чтобы передать ее администратору, или /cancel, чтобы отменить."
+    ),
+    request_confirmed="Заявка {request_id} подтверждена и передана администратору.",
+    request_cancelled="Заявка {request_id} отменена.",
+    no_pending_request="Нет заявки, ожидающей подтверждения.",
 )
 
 EN_MESSAGES = MessageCatalog(
@@ -107,6 +123,17 @@ EN_MESSAGES = MessageCatalog(
         "The request looks incomplete. Send the building, arrival time, vehicle model, "
         "and license plate. Use /template for the expected format."
     ),
+    missing_fields=(
+        "The request is incomplete. Fill these required fields: {fields}. "
+        "Use /template for the expected format."
+    ),
+    confirmation_prompt=(
+        "Review request {request_id}:\n\n{preview}\n\n"
+        "Send /confirm to forward it to the administrator or /cancel to discard it."
+    ),
+    request_confirmed="Request {request_id} has been confirmed and sent to the administrator.",
+    request_cancelled="Request {request_id} has been cancelled.",
+    no_pending_request="There is no request waiting for confirmation.",
 )
 
 CATALOGS: dict[Locale, MessageCatalog] = {

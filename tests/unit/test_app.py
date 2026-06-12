@@ -24,6 +24,13 @@ from telegram_resender.messages import (
 )
 from telegram_resender.settings import Settings
 
+VALID_REQUEST = (
+    "Объект/здание: Башня А\n"
+    "Дата и время прибытия: 12.06.2026 10:30\n"
+    "Автомобиль: Ford Focus\n"
+    "Госномер: А123ВС"
+)
+
 
 class FakeBot:
     """Minimal bot double used by the message forwarding handler."""
@@ -41,7 +48,7 @@ class FakeMessage:
     def __init__(
         self,
         *,
-        text: str | None = "Tower A, arrival 12:00, Ford, A123BC",
+        text: str | None = VALID_REQUEST,
         username: str | None = "alice",
         bot: FakeBot | None = None,
     ) -> None:
@@ -68,13 +75,14 @@ class FakeMessage:
 Handler = Callable[[Any], Awaitable[None]]
 
 
-def _settings(tmp_path: Path) -> Settings:
+def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settings:
     whitelist_path = tmp_path / "whitelist.csv"
     whitelist_path.write_text("alice\n", encoding="utf-8")
     return Settings(
         bot_token="123:abc",
         forward_chat_id=200,
         whitelist_path=whitelist_path,
+        confirm_before_forward=confirm_before_forward,
     )
 
 
@@ -139,6 +147,62 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
     assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_forward_text_can_require_confirmation(tmp_path: Path) -> None:
+    """Confirmation mode should show a preview and wait for /confirm."""
+
+    settings = _settings(tmp_path, confirm_before_forward=True)
+    router = create_router(settings, build_service(settings))
+    handlers = _message_handlers(router)
+    bot = FakeBot()
+    message = FakeMessage(bot=bot)
+
+    await handlers["forward_text"](message)
+
+    assert bot.sent_messages == []
+    assert "tg-100-55" in message.answers[0]
+    assert "/confirm" in message.answers[0]
+
+    confirm = FakeMessage(bot=bot)
+    await handlers["confirm_request"](confirm)
+
+    assert confirm.answers == [RU_MESSAGES.request_confirmed.format(request_id="tg-100-55")]
+    assert len(bot.sent_messages) == 1
+    assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_confirmation_can_be_cancelled(tmp_path: Path) -> None:
+    """Pending confirmation should be cancellable without forwarding."""
+
+    settings = _settings(tmp_path, confirm_before_forward=True)
+    router = create_router(settings, build_service(settings))
+    handlers = _message_handlers(router)
+    bot = FakeBot()
+    message = FakeMessage(bot=bot)
+
+    await handlers["forward_text"](message)
+    cancel = FakeMessage(bot=bot)
+    await handlers["cancel_request"](cancel)
+
+    assert cancel.answers == [RU_MESSAGES.request_cancelled.format(request_id="tg-100-55")]
+    assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_confirm_without_pending_request_gets_guidance(tmp_path: Path) -> None:
+    """Users should know when there is nothing to confirm."""
+
+    settings = _settings(tmp_path, confirm_before_forward=True)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["confirm_request"]
+    message = FakeMessage(bot=FakeBot())
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.no_pending_request]
 
 
 @pytest.mark.asyncio

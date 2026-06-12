@@ -12,6 +12,13 @@ from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.service import ResenderService
 from telegram_resender.whitelist import Whitelist
 
+VALID_REQUEST = (
+    "Объект/здание: Башня А\n"
+    "Дата и время прибытия: 12.06.2026 10:30\n"
+    "Автомобиль: Ford Focus\n"
+    "Госномер: А123ВС"
+)
+
 
 def test_conversation_commands_and_request_flow() -> None:
     """Mirror an operator conversation without Telegram SDK dependency."""
@@ -23,6 +30,8 @@ def test_conversation_commands_and_request_flow() -> None:
         access_denied_message=RU_MESSAGES.access_denied_unknown,
         missing_username_message=RU_MESSAGES.access_denied_missing_username,
         invalid_request_message=RU_MESSAGES.invalid_request,
+        missing_fields_message=RU_MESSAGES.missing_fields,
+        locale="ru",
     )
 
     bot_flow = []
@@ -42,7 +51,7 @@ def test_conversation_commands_and_request_flow() -> None:
         _run(
             IncomingMessage(
                 chat_id=100,
-                text="Tower A, arrival 12:00, Ford, A123BC",
+                text=VALID_REQUEST,
                 user=UserProfile(username="alice"),
             )
         )
@@ -51,7 +60,7 @@ def test_conversation_commands_and_request_flow() -> None:
         _run(
             IncomingMessage(
                 chat_id=100,
-                text="Tower A, arrival 12:00, Ford, A123BC",
+                text=VALID_REQUEST,
                 user=UserProfile(username="stranger"),
             )
         )

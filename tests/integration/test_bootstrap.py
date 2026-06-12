@@ -7,6 +7,13 @@ from telegram_resender.messages import REQUEST_ACCEPTED_MESSAGE
 from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.settings import Settings
 
+VALID_REQUEST = (
+    "Объект/здание: Башня А\n"
+    "Дата и время прибытия: 12.06.2026 10:30\n"
+    "Автомобиль: Ford Focus\n"
+    "Госномер: А123ВС"
+)
+
 
 def test_build_service_uses_project_files(tmp_path: Path) -> None:
     """Settings should load and inject dependencies without direct Telegram SDK calls."""
@@ -22,7 +29,7 @@ def test_build_service_uses_project_files(tmp_path: Path) -> None:
     decision = service.handle_text(
         IncomingMessage(
             chat_id=100,
-            text="Tower A, arrival 12:00, Ford, A123BC",
+            text=VALID_REQUEST,
             user=UserProfile(username="alice"),
         )
     )

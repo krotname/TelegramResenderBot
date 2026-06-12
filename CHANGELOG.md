@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0
+- Add labeled request parsing for Russian and English templates.
+- Validate required request fields: building, arrival date/time, vehicle, and license plate.
+- Report missing fields back to the user instead of forwarding incomplete requests.
+- Add optional confirmation mode with `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD`.
+- Add `/confirm` and `/cancel` for pending request previews.
+- Share the same request id between user-facing confirmation messages and forwarded admin messages.
+- Expand service, parser, app, and conversation tests for the guided request flow.
+
 ## 1.1.0
 - Add a `telegram-resender doctor` diagnostics command for local configuration checks.
 - Replace raw startup tracebacks with concise configuration errors by default.
