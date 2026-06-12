@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+- Apply `ruff format` to match the CI formatter gate after the `1.6.0` release.
+- No functional changes.
+
 ## 1.6.0
 - Add Dockerfile and docker-compose deployment templates.
 - Add systemd unit example and `.env.production.example`.

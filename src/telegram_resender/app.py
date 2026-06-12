@@ -325,7 +325,5 @@ def configure_logging(settings: Settings) -> None:
     if settings.log_format == "JSON":
         handler.setFormatter(JsonLogFormatter())
     else:
-        handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
-        )
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     logging.basicConfig(level=settings.log_level, handlers=[handler], force=True)
