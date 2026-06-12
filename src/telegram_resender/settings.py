@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from telegram_resender.messages import ACCESS_DENIED_MESSAGE, REQUEST_ACCEPTED_MESSAGE
+from telegram_resender.messages import Locale, MessageCatalog, message_catalog
 
 
 class Settings(BaseSettings):
@@ -39,8 +39,18 @@ class Settings(BaseSettings):
     )
     polling_timeout: int = Field(default=30, ge=1, le=120)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    request_accepted_message: str = REQUEST_ACCEPTED_MESSAGE
-    access_denied_message: str = ACCESS_DENIED_MESSAGE
+    locale: Locale = "ru"
+    request_accepted_message: str | None = None
+    access_denied_message: str | None = None
+
+    @property
+    def messages(self) -> MessageCatalog:
+        """Localized bot messages with backward-compatible env overrides applied."""
+
+        return message_catalog(self.locale).with_overrides(
+            request_accepted=self.request_accepted_message,
+            access_denied_unknown=self.access_denied_message,
+        )
 
     @field_validator("bot_token")
     @classmethod

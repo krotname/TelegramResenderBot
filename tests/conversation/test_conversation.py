@@ -5,6 +5,7 @@ from telegram_resender.messages import (
     CAR_MODE_MESSAGE,
     HELP_MESSAGE,
     REQUEST_ACCEPTED_MESSAGE,
+    RU_MESSAGES,
     START_MESSAGE,
 )
 from telegram_resender.models import IncomingMessage, UserProfile
@@ -19,7 +20,9 @@ def test_conversation_commands_and_request_flow() -> None:
         whitelist=Whitelist(["alice"]),
         formatter=MessageFormatter(),
         request_accepted_message=REQUEST_ACCEPTED_MESSAGE,
-        access_denied_message="deny",
+        access_denied_message=RU_MESSAGES.access_denied_unknown,
+        missing_username_message=RU_MESSAGES.access_denied_missing_username,
+        invalid_request_message=RU_MESSAGES.invalid_request,
     )
 
     bot_flow = []
@@ -39,7 +42,7 @@ def test_conversation_commands_and_request_flow() -> None:
         _run(
             IncomingMessage(
                 chat_id=100,
-                text="Hello",
+                text="Tower A, arrival 12:00, Ford, A123BC",
                 user=UserProfile(username="alice"),
             )
         )
@@ -48,7 +51,7 @@ def test_conversation_commands_and_request_flow() -> None:
         _run(
             IncomingMessage(
                 chat_id=100,
-                text="Hello",
+                text="Tower A, arrival 12:00, Ford, A123BC",
                 user=UserProfile(username="stranger"),
             )
         )
@@ -62,8 +65,22 @@ def test_conversation_commands_and_request_flow() -> None:
             )
         )
     )
+    bot_flow.append(
+        _run(
+            IncomingMessage(
+                chat_id=100,
+                text="hi",
+                user=UserProfile(username="alice"),
+            )
+        )
+    )
 
-    assert bot_flow == [REQUEST_ACCEPTED_MESSAGE, "deny", "deny"]
+    assert bot_flow == [
+        REQUEST_ACCEPTED_MESSAGE,
+        RU_MESSAGES.access_denied_unknown,
+        RU_MESSAGES.access_denied_missing_username.format(chat_id=100),
+        RU_MESSAGES.invalid_request,
+    ]
     assert len(admin_flow) == 1
     assert "Source chat: 100" in admin_flow[0]
     assert "New Telegram request" in admin_flow[0]

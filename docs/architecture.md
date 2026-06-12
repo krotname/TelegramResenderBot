@@ -2,8 +2,10 @@
 
 ```text
 User Telegram Message -> app.incoming_from_message -> service.ResenderService.handle_text ->
-  [whitelist.check] ->
-    - denied: bot replies with denied message
+  [whitelist.check + request sanity check] ->
+    - missing username: bot replies with chat-id guidance
+    - unknown username: bot replies with private-bot denial
+    - incomplete request: bot replies with request template guidance
     - allowed: formatter.MessageFormatter.format_forward -> target chat
 ```
 
@@ -12,7 +14,8 @@ User Telegram Message -> app.incoming_from_message -> service.ResenderService.ha
 - `service.ResenderService`: pure decision function.
 - `formatting.MessageFormatter`: stable forwarding format.
 - `app.py`: adapter layer to aiogram (`Message` -> domain model).
-- `cli.py`: explicit application entrypoint.
+- `messages.py`: localized user-facing message catalogs.
+- `cli.py`: explicit application entrypoint and `doctor` diagnostics.
 - `src/telegram_resender/__main__.py`: module entry point for `python -m telegram_resender`.
 
 ## Design goals

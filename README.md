@@ -17,6 +17,20 @@
 Этот бот проверяет текстовые сообщения пользователей по белому списку и пересылает
 разрешенные сообщения в указанный чат/группу.
 
+Начиная с `1.1.0`, бот по умолчанию говорит по-русски, показывает шаблон заявки,
+различает причины отказа и имеет диагностический режим без запуска Telegram polling.
+
+## Возможности
+
+- `/start`, `/help`, `/template`, `/avto` для пользовательского сценария.
+- Белый список Telegram username из CSV.
+- Понятный отказ для неизвестного пользователя и отдельный отказ для пользователя
+  без Telegram username.
+- Защита от случайной пересылки коротких приветствий вместо заявки.
+- Ответ на неподдерживаемые типы сообщений: фото, документы, стикеры, голосовые.
+- Диагностика конфигурации через `telegram-resender doctor`.
+- Детерминированный формат пересылки с request id и временем заявки.
+
 ## Быстрый старт
 
 ```bash
@@ -25,16 +39,24 @@ python -m venv .venv
 pip install -e .[dev]
 copy .env.example .env      # Windows
 # или: cp .env.example .env  # Linux/macOS
-python -m telegram_resender
+telegram-resender doctor
+telegram-resender
 ```
+
+Если `doctor` сообщает об ошибке, заполните `.env` до запуска polling.
 
 ## Конфигурация
 
-- `TELEGRAM_RESENDER_BOT_TOKEN` — токен Telegram-бота (обязательный)
-- `TELEGRAM_RESENDER_FORWARD_CHAT_ID` — id чата/группы для пересылки
-- `TELEGRAM_RESENDER_WHITELIST_PATH` — путь к whitelist.csv (по умолчанию `whitelist.csv`)
-- `TELEGRAM_RESENDER_LOG_LEVEL` — уровень логов
-- `TELEGRAM_RESENDER_POLLING_TIMEOUT` — таймаут поллинга
+| Переменная | Обязательная | Описание |
+|---|---:|---|
+| `TELEGRAM_RESENDER_BOT_TOKEN` | да | токен Telegram-бота |
+| `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | да | id чата/группы для пересылки |
+| `TELEGRAM_RESENDER_WHITELIST_PATH` | нет | путь к whitelist.csv, по умолчанию `whitelist.csv` |
+| `TELEGRAM_RESENDER_LOCALE` | нет | `ru` или `en`, по умолчанию `ru` |
+| `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `TELEGRAM_RESENDER_POLLING_TIMEOUT` | нет | таймаут polling, по умолчанию `30` |
+| `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | нет | переопределение текста успешной заявки |
+| `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | нет | переопределение текста отказа неизвестному пользователю |
 
 Формат whitelist:
 
@@ -42,6 +64,20 @@ python -m telegram_resender
 alice
 @bob
 ```
+
+## Формат заявки
+
+Пользователь может вызвать `/template` или `/avto` и отправить текст:
+
+```text
+Объект/здание: Башня А
+Дата и время прибытия: 12.06.2026 10:30
+Автомобиль: Ford Focus
+Госномер: А123ВС
+Комментарий: встреча с отделом эксплуатации
+```
+
+Пока бот принимает только текст. Медиа и документы не пересылаются.
 
 ## Тесты и качество
 
@@ -54,7 +90,14 @@ alice
 
 ```bash
 pytest
+ruff check .
+mypy src tests
 ```
+
+## Roadmap и UX-аудит
+
+Подробный UX/конкурентный аудит и план следующих версий:
+[docs/ux-competitive-roadmap.ru.md](docs/ux-competitive-roadmap.ru.md).
 
 ## Вклад в проект
 

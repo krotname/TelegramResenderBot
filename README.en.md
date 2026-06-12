@@ -23,10 +23,13 @@ The project is intentionally small and practical:
 
 ## Features
 
-- `/start`, `/help`, `/avto` commands
+- `/start`, `/help`, `/template`, `/avto` commands
 - whitelist-based access control
-- deterministic formatting of forwarded messages
-- strict startup validation for secrets
+- localized Russian and English bot messages
+- separate guidance for unknown users, missing Telegram usernames, and incomplete requests
+- unsupported message guidance for photos, documents, stickers, and voice messages
+- deterministic formatting of forwarded messages with request id and submitted time
+- strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
 - GitHub Actions CI (lint, typing, tests, CodeQL, dependency review)
 - OpenSSF Scorecard workflow with SARIF upload and public API badge publishing
@@ -43,7 +46,8 @@ python -m venv .venv
 pip install -e .[dev]
 copy .env.example .env      # Windows
 # or: cp .env.example .env  # Linux/macOS
-python -m telegram_resender
+telegram-resender doctor
+telegram-resender
 ```
 
 Windows and Linux share the same startup command.
@@ -57,8 +61,9 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_BOT_TOKEN` | yes | Telegram bot token |
 | `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | yes | target chat/group ID |
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | no | CSV path, default `whitelist.csv` |
+| `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
-| `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned when access denied |
+| `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned to unknown users |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | no | Polling timeout, default `30` |
 
@@ -70,14 +75,26 @@ alice
 @bob
 ```
 
+## Request format
+
+Users can call `/template` or `/avto` and send a text request:
+
+```text
+Building: Tower A
+Arrival date and time: 2026-06-12 10:30
+Vehicle: Ford Focus
+License plate: A123BC
+Comment: meeting with facilities
+```
+
+The bot currently accepts text only. Media and documents are not forwarded.
+
 ## Development
 
 ```bash
 pip install -e .[dev]
-ruff check src tests
-ruff format src tests
-ruff check --fix src tests
-mypy src
+ruff check .
+mypy src tests
 pytest
 ```
 
@@ -114,10 +131,12 @@ GPL-3.0 License. See [LICENSE](LICENSE).
 
 - [Architecture](docs/architecture.md)
 - [Testing strategy](docs/testing.md)
+- [UX and competitive roadmap](docs/ux-competitive-roadmap.ru.md)
 
 ---
 
 English and Russian users can find mirrored information in both languages:
 
-- [README.md (English)](README.md)
+- [README.en.md (English)](README.en.md)
+- [README.md (Russian, primary)](README.md)
 - [README.ru.md (Russian)](README.ru.md)

@@ -9,7 +9,6 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from telegram_resender.formatting import MessageFormatter
-from telegram_resender.messages import CAR_MODE_MESSAGE, HELP_MESSAGE, START_MESSAGE
 from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.service import ResenderService
 from telegram_resender.settings import Settings
@@ -30,6 +29,8 @@ def incoming_from_message(message: Message) -> IncomingMessage:
             first_name=user.first_name if user else None,
             last_name=user.last_name if user else None,
         ),
+        message_id=message.message_id,
+        submitted_at=message.date,
     )
 
 
@@ -37,11 +38,14 @@ def build_service(settings: Settings) -> ResenderService:
     """Build the forwarding service from runtime settings."""
 
     whitelist = Whitelist.from_file(settings.whitelist_path)
+    messages = settings.messages
     return ResenderService(
         whitelist=whitelist,
         formatter=MessageFormatter(),
-        request_accepted_message=settings.request_accepted_message,
-        access_denied_message=settings.access_denied_message,
+        request_accepted_message=messages.request_accepted,
+        access_denied_message=messages.access_denied_unknown,
+        missing_username_message=messages.access_denied_missing_username,
+        invalid_request_message=messages.invalid_request,
     )
 
 
@@ -49,18 +53,23 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
     """Create Telegram handlers with dependencies injected for testing."""
 
     router = Router(name="telegram-resender")
+    messages = settings.messages
 
     @router.message(Command("start"))
     async def start(message: Message) -> None:
-        await message.answer(START_MESSAGE)
+        await message.answer(messages.start)
 
     @router.message(Command("help"))
     async def help_command(message: Message) -> None:
-        await message.answer(HELP_MESSAGE)
+        await message.answer(messages.help)
 
     @router.message(Command("avto"))
     async def car_mode(message: Message) -> None:
-        await message.answer(CAR_MODE_MESSAGE)
+        await message.answer(messages.template)
+
+    @router.message(Command("template"))
+    async def template(message: Message) -> None:
+        await message.answer(messages.template)
 
     @router.message(F.text)
     async def forward_text(message: Message) -> None:
@@ -75,6 +84,10 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
         else:
             LOGGER.info("Rejected message: %s", decision.reason)
         await message.answer(decision.response_text)
+
+    @router.message()
+    async def unsupported_message(message: Message) -> None:
+        await message.answer(messages.unsupported_message)
 
     return router
 

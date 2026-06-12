@@ -22,7 +22,7 @@ def test_build_service_uses_project_files(tmp_path: Path) -> None:
     decision = service.handle_text(
         IncomingMessage(
             chat_id=100,
-            text="hello",
+            text="Tower A, arrival 12:00, Ford, A123BC",
             user=UserProfile(username="alice"),
         )
     )

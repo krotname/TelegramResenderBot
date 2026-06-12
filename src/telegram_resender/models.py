@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal
 
 
@@ -22,9 +23,16 @@ class IncomingMessage:
     chat_id: int
     text: str
     user: UserProfile
+    message_id: int | None = None
+    submitted_at: datetime | None = None
 
 
-DecisionReason = Literal["allowed_username", "missing_username", "unknown_username"]
+DecisionReason = Literal[
+    "allowed_username",
+    "missing_username",
+    "unknown_username",
+    "invalid_request",
+]
 
 
 @dataclass(frozen=True, slots=True)

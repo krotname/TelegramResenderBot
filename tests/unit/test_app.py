@@ -1,6 +1,7 @@
 """Unit tests for aiogram adapter wiring."""
 
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -18,6 +19,7 @@ from telegram_resender.messages import (
     CAR_MODE_MESSAGE,
     HELP_MESSAGE,
     REQUEST_ACCEPTED_MESSAGE,
+    RU_MESSAGES,
     START_MESSAGE,
 )
 from telegram_resender.settings import Settings
@@ -39,12 +41,14 @@ class FakeMessage:
     def __init__(
         self,
         *,
-        text: str | None = "hello",
+        text: str | None = "Tower A, arrival 12:00, Ford, A123BC",
         username: str | None = "alice",
         bot: FakeBot | None = None,
     ) -> None:
         self.chat = SimpleNamespace(id=100)
         self.text = text
+        self.message_id = 55
+        self.date = datetime(2026, 6, 12, 10, 30, tzinfo=UTC)
         self.from_user = (
             SimpleNamespace(username=username, first_name="Alice", last_name="Tester")
             if username is not None
@@ -91,6 +95,8 @@ def test_incoming_from_message_handles_missing_fields() -> None:
     assert incoming.user.username is None
     assert incoming.user.first_name is None
     assert incoming.user.last_name is None
+    assert incoming.message_id == 55
+    assert incoming.submitted_at == datetime(2026, 6, 12, 10, 30, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
@@ -103,14 +109,17 @@ async def test_command_handlers_answer_static_messages(tmp_path: Path) -> None:
     start_message = FakeMessage()
     help_message = FakeMessage()
     car_message = FakeMessage()
+    template_message = FakeMessage()
 
     await handlers["start"](start_message)
     await handlers["help_command"](help_message)
     await handlers["car_mode"](car_message)
+    await handlers["template"](template_message)
 
     assert start_message.answers == [START_MESSAGE]
     assert help_message.answers == [HELP_MESSAGE]
     assert car_message.answers == [CAR_MODE_MESSAGE]
+    assert template_message.answers == [CAR_MODE_MESSAGE]
 
 
 @pytest.mark.asyncio
@@ -129,6 +138,7 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert len(bot.sent_messages) == 1
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
+    assert "Request id: tg-100-55" in bot.sent_messages[0][1]
 
 
 @pytest.mark.asyncio
@@ -143,7 +153,39 @@ async def test_forward_text_rejects_unknown_user(tmp_path: Path) -> None:
 
     await handler(message)
 
-    assert message.answers == [settings.access_denied_message]
+    assert message.answers == [settings.messages.access_denied_unknown]
+    assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_forward_text_rejects_missing_username_with_chat_id(tmp_path: Path) -> None:
+    """Users without a Telegram username should get an actionable denial."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = FakeBot()
+    message = FakeMessage(username=None, bot=bot)
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.access_denied_missing_username.format(chat_id=100)]
+    assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_forward_text_rejects_incomplete_request(tmp_path: Path) -> None:
+    """Whitelisted users should get template guidance for non-actionable text."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = FakeBot()
+    message = FakeMessage(text="hi", bot=bot)
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.invalid_request]
     assert bot.sent_messages == []
 
 
@@ -157,6 +199,20 @@ async def test_forward_text_requires_bound_bot(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="not bound to a bot"):
         await handler(FakeMessage(bot=None))
+
+
+@pytest.mark.asyncio
+async def test_unsupported_messages_get_guidance(tmp_path: Path) -> None:
+    """Non-text messages should not be silently ignored."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["unsupported_message"]
+    message = FakeMessage(text=None, bot=FakeBot())
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.unsupported_message]
 
 
 def test_create_dispatcher_registers_router(tmp_path: Path) -> None:
