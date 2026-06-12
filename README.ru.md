@@ -30,6 +30,7 @@
 - Админские команды для статуса и перезагрузки whitelist без рестарта.
 - Опциональные multi-route правила через `routes.json`.
 - SQLite delivery log, retry/backoff и идемпотентность по request id.
+- Docker, docker-compose, systemd и health-check для production.
 - Детерминированный формат пересылки с request id и временем заявки.
 
 ## Быстрый старт
@@ -61,6 +62,7 @@ telegram-resender
 | `TELEGRAM_RESENDER_DELIVERY_MAX_ATTEMPTS` | нет | попытки отправки в Telegram, по умолчанию `3` |
 | `TELEGRAM_RESENDER_DELIVERY_RETRY_BACKOFF` | нет | базовая задержка retry в секундах |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `TELEGRAM_RESENDER_LOG_FORMAT` | нет | `TEXT` или `JSON`, по умолчанию `TEXT` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | нет | таймаут polling, по умолчанию `30` |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | нет | переопределение текста успешной заявки |
 | `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | нет | переопределение текста отказа неизвестному пользователю |
@@ -135,8 +137,37 @@ alice
 
 ```bash
 telegram-resender doctor --storage-check
+telegram-resender health
 telegram-resender export-requests --since 2026-06-12
 ```
+
+## Развертывание
+
+Docker:
+
+```bash
+copy .env.production.example .env.production
+mkdir data
+copy whitelist.example.csv data\whitelist.csv
+docker compose up -d --build
+```
+
+Systemd пример лежит в [deploy/telegram-resender.service](deploy/telegram-resender.service).
+Production env template: [.env.production.example](.env.production.example).
+
+Для production-логов включите:
+
+```env
+TELEGRAM_RESENDER_LOG_FORMAT=JSON
+```
+
+## Ограничения
+
+- Это bot-based intake/forwarding, не userbot.
+- Бот не обходит protected/restricted Telegram-чаты.
+- Медиа, документы, voice и polls пока не пересылаются как payload.
+- AI rewrite/translate/digest не реализованы.
+- Hosted SaaS, mobile app и web dashboard не входят в текущую self-hosted область.
 
 ## Тесты и качество
 

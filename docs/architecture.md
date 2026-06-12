@@ -21,7 +21,7 @@ User Telegram Message -> app.incoming_from_message -> service.ResenderService.ha
 - `storage.py`: SQLite delivery log and CSV export.
 - `app.py`: adapter layer to aiogram (`Message` -> domain model).
 - `messages.py`: localized user-facing message catalogs.
-- `cli.py`: explicit application entrypoint and `doctor` diagnostics.
+- `cli.py`: explicit application entrypoint, `doctor`, `health`, and CSV export commands.
 - `src/telegram_resender/__main__.py`: module entry point for `python -m telegram_resender`.
 
 Admin command flow:
@@ -41,6 +41,14 @@ matched route target -> storage.RequestLog.begin_delivery ->
   already delivered: skip duplicate send
   pending: delivery.send_with_retry -> mark delivered or failed
 ```
+
+Deployment surface:
+
+- `Dockerfile`: container runtime using `/data` for whitelist and SQLite storage.
+- `docker-compose.yml`: local production-style compose service.
+- `deploy/telegram-resender.service`: systemd unit example.
+- `TELEGRAM_RESENDER_LOG_FORMAT=JSON`: structured logs for production collectors.
+- `telegram-resender health`: concise process-manager health check.
 
 ## Design goals
 

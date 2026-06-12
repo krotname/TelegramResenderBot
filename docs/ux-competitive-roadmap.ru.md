@@ -6,7 +6,7 @@
 поведение репозитория, проверенные команды, конкурентный контекст, UX/UI баги и
 итерационный план следующих релизов.
 
-Статус после релиза `1.5.0`: раздел 7 использован как acceptance baseline для
+Статус после релиза `1.6.0`: раздел 7 использован как acceptance baseline для
 bugfix/UX hardening релиза, а `v1.2.0` реализовал guided request flow:
 шаблонную заявку, required-field validation, preview/confirm и общий request id.
 `v1.3.0` реализовал admin operations: `TELEGRAM_RESENDER_ADMIN_IDS`, `/whoami`,
@@ -15,7 +15,9 @@ bugfix/UX hardening релиза, а `v1.2.0` реализовал guided reques
 allowed usernames, keyword allow/block filters, route templates и doctor validation.
 `v1.5.0` реализовал delivery reliability: SQLite delivery log, retry/backoff,
 idempotency по request id + target chat, `doctor --storage-check` и CSV export.
-Дальнейшая итерационная разработка начинается с `v1.6.0`.
+`v1.6.0` реализовал deployment/operator experience: Docker, docker-compose,
+systemd example, `.env.production.example`, structured logging, `health` command
+и documented known limitations. Пятирелизный roadmap из раздела 8 завершен.
 
 ## 1. Что это за приложение
 

@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     )
     polling_timeout: int = Field(default=30, ge=1, le=120)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_format: Literal["TEXT", "JSON"] = "TEXT"
     locale: Locale = "ru"
     confirm_before_forward: bool = False
     delivery_max_attempts: int = Field(default=3, ge=1, le=10)

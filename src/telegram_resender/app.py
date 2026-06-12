@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
@@ -20,6 +22,21 @@ from telegram_resender.storage import RequestLog
 from telegram_resender.whitelist import Whitelist
 
 LOGGER = logging.getLogger(__name__)
+
+
+class JsonLogFormatter(logging.Formatter):
+    """Small JSON formatter for production logs."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": datetime.fromtimestamp(record.created, UTC).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,10 +306,7 @@ async def run_polling(settings: Settings | None = None) -> None:  # pragma: no c
     """Run the bot in long polling mode."""
 
     loaded_settings = settings or Settings()  # type: ignore[call-arg]
-    logging.basicConfig(
-        level=loaded_settings.log_level,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    configure_logging(loaded_settings)
     service = build_service(loaded_settings)
     dispatcher = create_dispatcher(loaded_settings, service)
     bot = Bot(token=loaded_settings.bot_token)
@@ -302,3 +316,16 @@ async def run_polling(settings: Settings | None = None) -> None:  # pragma: no c
         polling_timeout=loaded_settings.polling_timeout,
         allowed_updates=dispatcher.resolve_used_update_types(),
     )
+
+
+def configure_logging(settings: Settings) -> None:
+    """Configure process logging from runtime settings."""
+
+    handler = logging.StreamHandler()
+    if settings.log_format == "JSON":
+        handler.setFormatter(JsonLogFormatter())
+    else:
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+        )
+    logging.basicConfig(level=settings.log_level, handlers=[handler], force=True)

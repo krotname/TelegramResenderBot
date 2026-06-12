@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+- Add Dockerfile and docker-compose deployment templates.
+- Add systemd unit example and `.env.production.example`.
+- Add structured logging with `TELEGRAM_RESENDER_LOG_FORMAT=TEXT|JSON`.
+- Add `telegram-resender health` for process-manager health checks.
+- Document Docker, systemd, health checks, and known limitations.
+
 ## 1.5.0
 - Add SQLite delivery log via `TELEGRAM_RESENDER_STORAGE_PATH`.
 - Add idempotent delivery per request id and target chat.

@@ -32,6 +32,7 @@ The project is intentionally small and practical:
 - admin commands for status checks and whitelist reloads without restart
 - optional multi-route rules through `routes.json`
 - SQLite delivery log, retry/backoff, and request-id idempotency
+- Docker, docker-compose, systemd, and health checks for production
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
@@ -75,6 +76,7 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
 | `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned to unknown users |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `TELEGRAM_RESENDER_LOG_FORMAT` | no | `TEXT` or `JSON`, default `TEXT` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | no | Polling timeout, default `30` |
 
 Whitelist format:
@@ -146,8 +148,37 @@ delivered, processing the same request id again will not send a duplicate messag
 
 ```bash
 telegram-resender doctor --storage-check
+telegram-resender health
 telegram-resender export-requests --since 2026-06-12
 ```
+
+## Deployment
+
+Docker:
+
+```bash
+cp .env.production.example .env.production
+mkdir -p data
+cp whitelist.example.csv data/whitelist.csv
+docker compose up -d --build
+```
+
+The systemd example is in [deploy/telegram-resender.service](deploy/telegram-resender.service).
+The production environment template is [.env.production.example](.env.production.example).
+
+For production logs, use:
+
+```env
+TELEGRAM_RESENDER_LOG_FORMAT=JSON
+```
+
+## Known limitations
+
+- This is bot-based intake/forwarding, not a userbot.
+- The bot does not bypass protected or restricted Telegram chats.
+- Media, documents, voice messages, and polls are not forwarded as payloads yet.
+- AI rewrite, translation, and digest features are not implemented.
+- Hosted SaaS, mobile apps, and a web dashboard are outside the current self-hosted scope.
 
 ## Development
 

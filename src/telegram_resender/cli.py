@@ -29,6 +29,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise SystemExit(run_doctor(storage_check=args.storage_check))
     if args.command == "export-requests":
         raise SystemExit(export_requests(since=args.since))
+    if args.command == "health":
+        raise SystemExit(run_health())
     raise SystemExit(run_bot(debug=args.debug))
 
 
@@ -105,7 +107,24 @@ def _build_parser() -> argparse.ArgumentParser:
         help="export delivery log rows as CSV",
     )
     export_parser.add_argument("--since", required=True, help="inclusive date in YYYY-MM-DD format")
+    subparsers.add_parser("health", help="minimal health check for process managers")
     return parser
+
+
+def run_health(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+    """Run a concise health check for process managers."""
+
+    try:
+        settings = Settings()  # type: ignore[call-arg]
+        Whitelist.from_file(settings.whitelist_path)
+        if settings.routes_path is not None:
+            load_routes(settings.routes_path)
+        RequestLog(settings.storage_path).check()
+    except (ValidationError, FileNotFoundError, ValueError, OSError) as exc:
+        print(f"health=error error={exc}", file=stderr)
+        return 2
+    print("health=ok", file=stdout)
+    return 0
 
 
 def export_requests(

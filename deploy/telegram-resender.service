@@ -1,0 +1,22 @@
+[Unit]
+Description=Telegram Resender Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/telegram-resender
+EnvironmentFile=/opt/telegram-resender/.env.production
+ExecStart=/opt/telegram-resender/.venv/bin/telegram-resender
+Restart=on-failure
+RestartSec=10
+User=telegram-resender
+Group=telegram-resender
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/telegram-resender/data
+
+[Install]
+WantedBy=multi-user.target

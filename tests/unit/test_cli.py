@@ -98,3 +98,24 @@ def test_export_requests_outputs_csv(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
     assert "req-1,100,alice" in stdout.getvalue()
     assert stderr.getvalue() == ""
+
+
+def test_health_reports_ok_for_valid_configuration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health should be concise for process managers."""
+
+    whitelist_path = tmp_path / "whitelist.csv"
+    whitelist_path.write_text("alice\n", encoding="utf-8")
+    monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", "123:abc")
+    monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
+    monkeypatch.setenv("TELEGRAM_RESENDER_WHITELIST_PATH", str(whitelist_path))
+    monkeypatch.setenv("TELEGRAM_RESENDER_STORAGE_PATH", str(tmp_path / "requests.sqlite3"))
+    stdout = StringIO()
+    stderr = StringIO()
+
+    assert cli.run_health(stdout=stdout, stderr=stderr) == 0
+
+    assert stdout.getvalue() == "health=ok\n"
+    assert stderr.getvalue() == ""
