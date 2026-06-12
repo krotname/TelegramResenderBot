@@ -30,6 +30,7 @@ The project is intentionally small and practical:
 - unsupported message guidance for photos, documents, stickers, and voice messages
 - required-field validation and optional confirmation before forwarding
 - admin commands for status checks and whitelist reloads without restart
+- optional multi-route rules through `routes.json`
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
@@ -63,6 +64,7 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_BOT_TOKEN` | yes | Telegram bot token |
 | `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | yes | target chat/group ID |
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | no | CSV path, default `whitelist.csv` |
+| `TELEGRAM_RESENDER_ROUTES_PATH` | no | JSON route config path |
 | `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | no | `true` to show a preview and wait for `/confirm` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | no | comma-separated Telegram user IDs allowed to run admin commands |
@@ -107,6 +109,30 @@ forwards after `/confirm`. `/cancel` discards the pending request.
 - `/reload_whitelist` reloads the CSV whitelist without restarting the process.
 
 All admin commands except `/whoami` require `TELEGRAM_RESENDER_ADMIN_IDS`.
+
+## Routes
+
+If `TELEGRAM_RESENDER_ROUTES_PATH` is not set, the bot uses a single route from
+`TELEGRAM_RESENDER_FORWARD_CHAT_ID`. For multiple destinations, create JSON based on
+[routes.example.json](routes.example.json):
+
+```json
+{
+  "routes": [
+    {
+      "name": "tower-a",
+      "target_chat_id": -1002222222222,
+      "allowed_usernames": ["building_admin"],
+      "keywords_any": ["Tower A"],
+      "keywords_none": ["cancel"],
+      "template": "[{route}]\n{request}",
+      "enabled": true
+    }
+  ]
+}
+```
+
+The bot forwards a request to every enabled route matching the user and keyword filters.
 
 ## Development
 

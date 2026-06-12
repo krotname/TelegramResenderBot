@@ -1,0 +1,21 @@
+{
+  "routes": [
+    {
+      "name": "default",
+      "target_chat_id": -1001234567890,
+      "allowed_usernames": [],
+      "keywords_any": [],
+      "keywords_none": [],
+      "enabled": true
+    },
+    {
+      "name": "tower-a",
+      "target_chat_id": -1002222222222,
+      "allowed_usernames": ["building_admin"],
+      "keywords_any": ["Башня А", "Tower A"],
+      "keywords_none": ["отмена", "cancel"],
+      "template": "[{route}]\n{request}",
+      "enabled": true
+    }
+  ]
+}

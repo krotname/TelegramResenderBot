@@ -37,6 +37,11 @@ class Settings(BaseSettings):
         description="CSV file with allowed Telegram usernames.",
         validation_alias=AliasChoices("TELEGRAM_RESENDER_WHITELIST_PATH", "WHITELIST_PATH"),
     )
+    routes_path: Path | None = Field(
+        default=None,
+        description="Optional JSON file with forwarding routes.",
+        validation_alias=AliasChoices("TELEGRAM_RESENDER_ROUTES_PATH", "ROUTES_PATH"),
+    )
     polling_timeout: int = Field(default=30, ge=1, le=120)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     locale: Locale = "ru"
@@ -87,3 +92,12 @@ class Settings(BaseSettings):
         """Normalize path tokens while keeping relative paths stable."""
 
         return value.expanduser()
+
+    @field_validator("routes_path", mode="before")
+    @classmethod
+    def normalize_routes_path(cls, value: Path | str | None) -> Path | None:
+        """Normalize optional routes path while keeping relative paths stable."""
+
+        if value is None or value == "":
+            return None
+        return Path(value).expanduser()

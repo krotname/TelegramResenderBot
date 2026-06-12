@@ -31,6 +31,7 @@
 - Диагностика конфигурации через `telegram-resender doctor`.
 - Проверка обязательных полей заявки и опциональное подтверждение перед пересылкой.
 - Админские команды для статуса и перезагрузки whitelist без рестарта.
+- Опциональные multi-route правила через `routes.json`.
 - Детерминированный формат пересылки с request id и временем заявки.
 
 ## Быстрый старт
@@ -54,6 +55,7 @@ telegram-resender
 | `TELEGRAM_RESENDER_BOT_TOKEN` | да | токен Telegram-бота |
 | `TELEGRAM_RESENDER_FORWARD_CHAT_ID` | да | id чата/группы для пересылки |
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | нет | путь к whitelist.csv, по умолчанию `whitelist.csv` |
+| `TELEGRAM_RESENDER_ROUTES_PATH` | нет | путь к JSON-файлу маршрутов |
 | `TELEGRAM_RESENDER_LOCALE` | нет | `ru` или `en`, по умолчанию `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | нет | `true`, чтобы показывать preview и ждать `/confirm` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | нет | Telegram user id администраторов через запятую |
@@ -98,6 +100,30 @@ alice
 - `/reload_whitelist` перечитывает CSV whitelist без рестарта процесса.
 
 Все команды кроме `/whoami` доступны только id из `TELEGRAM_RESENDER_ADMIN_IDS`.
+
+## Маршруты
+
+Если `TELEGRAM_RESENDER_ROUTES_PATH` не задан, бот использует один маршрут из
+`TELEGRAM_RESENDER_FORWARD_CHAT_ID`. Для нескольких целей создайте JSON по образцу
+[routes.example.json](routes.example.json):
+
+```json
+{
+  "routes": [
+    {
+      "name": "tower-a",
+      "target_chat_id": -1002222222222,
+      "allowed_usernames": ["building_admin"],
+      "keywords_any": ["Башня А"],
+      "keywords_none": ["отмена"],
+      "template": "[{route}]\n{request}",
+      "enabled": true
+    }
+  ]
+}
+```
+
+Заявка отправляется во все активные маршруты, где совпали пользователь и keyword-фильтры.
 
 ## Тесты и качество
 

@@ -6,12 +6,14 @@
 поведение репозитория, проверенные команды, конкурентный контекст, UX/UI баги и
 итерационный план следующих релизов.
 
-Статус после релиза `1.3.0`: раздел 7 использован как acceptance baseline для
+Статус после релиза `1.4.0`: раздел 7 использован как acceptance baseline для
 bugfix/UX hardening релиза, а `v1.2.0` реализовал guided request flow:
 шаблонную заявку, required-field validation, preview/confirm и общий request id.
 `v1.3.0` реализовал admin operations: `TELEGRAM_RESENDER_ADMIN_IDS`, `/whoami`,
 `/admin_status`, `/whitelist_count`, `/reload_whitelist` и runtime whitelist reload.
-Дальнейшая итерационная разработка начинается с `v1.4.0`.
+`v1.4.0` реализовал routing rules: `routes.json`, multi-route forwarding,
+allowed usernames, keyword allow/block filters, route templates и doctor validation.
+Дальнейшая итерационная разработка начинается с `v1.5.0`.
 
 ## 1. Что это за приложение
 

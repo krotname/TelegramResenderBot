@@ -39,6 +39,7 @@ class MessageCatalog:
     unsupported_message: str
     invalid_request: str
     missing_fields: str
+    no_route_matched: str
     confirmation_prompt: str
     request_confirmed: str
     request_cancelled: str
@@ -95,6 +96,7 @@ RU_MESSAGES = MessageCatalog(
         "Заявка неполная. Заполните обязательные поля: {fields}. "
         "Шаблон доступен по команде /template."
     ),
+    no_route_matched="Заявка заполнена, но для нее не найден активный маршрут пересылки.",
     confirmation_prompt=(
         "Проверьте заявку {request_id}:\n\n{preview}\n\n"
         "Отправьте /confirm, чтобы передать ее администратору, или /cancel, чтобы отменить."
@@ -147,6 +149,7 @@ EN_MESSAGES = MessageCatalog(
         "The request is incomplete. Fill these required fields: {fields}. "
         "Use /template for the expected format."
     ),
+    no_route_matched="The request is complete, but no active forwarding route matched it.",
     confirmation_prompt=(
         "Review request {request_id}:\n\n{preview}\n\n"
         "Send /confirm to forward it to the administrator or /cancel to discard it."

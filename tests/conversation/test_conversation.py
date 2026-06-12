@@ -9,6 +9,7 @@ from telegram_resender.messages import (
     START_MESSAGE,
 )
 from telegram_resender.models import IncomingMessage, UserProfile
+from telegram_resender.routes import default_route
 from telegram_resender.service import ResenderService
 from telegram_resender.whitelist import Whitelist
 
@@ -31,7 +32,9 @@ def test_conversation_commands_and_request_flow() -> None:
         missing_username_message=RU_MESSAGES.access_denied_missing_username,
         invalid_request_message=RU_MESSAGES.invalid_request,
         missing_fields_message=RU_MESSAGES.missing_fields,
+        no_route_matched_message=RU_MESSAGES.no_route_matched,
         locale="ru",
+        routes=(default_route(200),),
     )
 
     bot_flow = []

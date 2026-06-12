@@ -7,6 +7,7 @@ from pathlib import Path
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import ForwardingDecision, IncomingMessage
 from telegram_resender.requests import format_missing_fields, parse_request
+from telegram_resender.routes import RouteRule
 from telegram_resender.whitelist import Whitelist
 
 
@@ -22,7 +23,9 @@ class ResenderService:
         missing_username_message: str,
         invalid_request_message: str,
         missing_fields_message: str,
+        no_route_matched_message: str,
         locale: str,
+        routes: tuple[RouteRule, ...],
     ) -> None:
         self._whitelist = whitelist
         self._formatter = formatter
@@ -31,7 +34,9 @@ class ResenderService:
         self._missing_username_message = missing_username_message
         self._invalid_request_message = invalid_request_message
         self._missing_fields_message = missing_fields_message
+        self._no_route_matched_message = no_route_matched_message
         self._locale = locale
+        self._routes = routes
 
     @property
     def whitelist_count(self) -> int:
@@ -87,13 +92,35 @@ class ResenderService:
             )
 
         request_id = self._formatter.format_request_id(message)
+        matching_routes = tuple(
+            route
+            for route in self._routes
+            if route.matches(username=message.user.username, text=message.text)
+        )
+        if not matching_routes:
+            return ForwardingDecision(
+                should_forward=False,
+                response_text=self._no_route_matched_message,
+                reason="no_route_matched",
+                request_id=request_id,
+            )
+        forward_text = self._formatter.format_forward(message)
         return ForwardingDecision(
             should_forward=True,
             response_text=self._request_accepted_message,
             reason="allowed_username",
-            forward_text=self._formatter.format_forward(message),
+            forward_text=forward_text,
             request_id=request_id,
+            target_chat_ids=tuple(route.target_chat_id for route in matching_routes),
         )
+
+    def render_forward_text_for_target(self, target_chat_id: int, default_text: str) -> str:
+        """Apply route template for the matched target if configured."""
+
+        for route in self._routes:
+            if route.target_chat_id == target_chat_id:
+                return route.render_forward_text(default_text)
+        return default_text
 
     def _looks_like_request(self, text: str) -> bool:
         """Reject empty greetings that are clearly not actionable requests."""

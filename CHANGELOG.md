@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0
+- Add optional JSON route configuration via `TELEGRAM_RESENDER_ROUTES_PATH`.
+- Support multiple forwarding routes with `name`, `target_chat_id`, `allowed_usernames`, `keywords_any`, `keywords_none`, `template`, and `enabled`.
+- Preserve backward compatibility with `TELEGRAM_RESENDER_FORWARD_CHAT_ID` when no routes file is configured.
+- Forward one request to every matching route destination.
+- Add route-specific templates with `{route}` and `{request}` placeholders.
+- Validate routes in `telegram-resender doctor` and report route count.
+- Add `routes.example.json` and tests for route parsing, filtering, and multi-route forwarding.
+
 ## 1.3.0
 - Add `TELEGRAM_RESENDER_ADMIN_IDS` for Telegram user IDs allowed to run admin operations.
 - Add `/whoami` so users can discover their Telegram user id and chat id.

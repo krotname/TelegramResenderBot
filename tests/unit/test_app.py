@@ -93,6 +93,30 @@ def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settin
     )
 
 
+def _settings_with_routes(tmp_path: Path) -> Settings:
+    whitelist_path = tmp_path / "whitelist.csv"
+    whitelist_path.write_text("alice\n", encoding="utf-8")
+    routes_path = tmp_path / "routes.json"
+    routes_path.write_text(
+        """
+        {
+          "routes": [
+            {"name": "primary", "target_chat_id": 200},
+            {"name": "tower", "target_chat_id": 300, "keywords_any": ["Башня"]}
+          ]
+        }
+        """,
+        encoding="utf-8",
+    )
+    return Settings(
+        bot_token="123:abc",
+        forward_chat_id=999,
+        whitelist_path=whitelist_path,
+        routes_path=routes_path,
+        admin_ids_raw="10",
+    )
+
+
 def _message_handlers(router: Router) -> dict[str, Handler]:
     return {
         handler.callback.__name__: handler.callback
@@ -233,6 +257,26 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert len(bot.sent_messages) == 1
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
+    assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_forward_text_uses_matching_routes(tmp_path: Path) -> None:
+    """Routes config should override the default forward chat target."""
+
+    settings = _settings_with_routes(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = FakeBot()
+    message = FakeMessage(bot=bot)
+
+    await handler(message)
+
+    assert message.answers == [REQUEST_ACCEPTED_MESSAGE]
+    assert bot.sent_messages == [
+        (200, bot.sent_messages[0][1]),
+        (300, bot.sent_messages[1][1]),
+    ]
     assert "Request id: tg-100-55" in bot.sent_messages[0][1]
 
 

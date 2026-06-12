@@ -68,6 +68,7 @@ def test_doctor_reports_loaded_configuration(
     assert cli.run_doctor(stdout=stdout, stderr=stderr) == 0
     assert "Configuration: OK" in stdout.getvalue()
     assert "Whitelist users: 2" in stdout.getvalue()
+    assert "Routes: 1" in stdout.getvalue()
     assert "Admin users: 0" in stdout.getvalue()
     assert "Confirm before forward: False" in stdout.getvalue()
     assert stderr.getvalue() == ""

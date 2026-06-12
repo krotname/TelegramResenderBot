@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "telegram-resender"
-version = "1.3.0"
+version = "1.4.0"
 description = "Telegram bot that forwards authorized user messages to a target chat."
 readme = "README.md"
 license = "GPL-3.0-only"

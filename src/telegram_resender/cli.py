@@ -13,6 +13,7 @@ from aiogram.exceptions import TelegramAPIError
 from pydantic import ValidationError
 
 from telegram_resender.app import run_polling
+from telegram_resender.routes import default_route, load_routes
 from telegram_resender.settings import Settings
 from telegram_resender.whitelist import Whitelist
 
@@ -44,10 +45,15 @@ def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
     try:
         settings = Settings()  # type: ignore[call-arg]
         whitelist = Whitelist.from_file(settings.whitelist_path)
+        routes = (
+            load_routes(settings.routes_path)
+            if settings.routes_path is not None
+            else (default_route(settings.forward_chat_id),)
+        )
     except ValidationError as exc:
         print(_format_validation_error(exc), file=stderr)
         return 2
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValueError) as exc:
         print(f"Configuration error: {exc}", file=stderr)
         print(_setup_hint(), file=stderr)
         return 2
@@ -58,6 +64,8 @@ def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
     print(f"Forward chat id: {settings.forward_chat_id}", file=stdout)
     print(f"Whitelist path: {_display_path(settings.whitelist_path)}", file=stdout)
     print(f"Whitelist users: {len(whitelist.usernames)}", file=stdout)
+    print(f"Routes path: {_display_optional_path(settings.routes_path)}", file=stdout)
+    print(f"Routes: {len(routes)}", file=stdout)
     print(f"Admin users: {len(settings.admin_ids)}", file=stdout)
     print(f"Confirm before forward: {settings.confirm_before_forward}", file=stdout)
     print(f"Polling timeout: {settings.polling_timeout}s", file=stdout)
@@ -108,3 +116,7 @@ def _display_path(path: Path) -> str:
         return str(path.resolve())
     except OSError:
         return str(path)
+
+
+def _display_optional_path(path: Path | None) -> str:
+    return _display_path(path) if path is not None else "<default single route>"

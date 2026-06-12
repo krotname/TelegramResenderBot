@@ -32,6 +32,7 @@ DecisionReason = Literal[
     "missing_username",
     "unknown_username",
     "invalid_request",
+    "no_route_matched",
 ]
 
 
@@ -44,3 +45,4 @@ class ForwardingDecision:
     reason: DecisionReason
     forward_text: str | None = None
     request_id: str | None = None
+    target_chat_ids: tuple[int, ...] = ()

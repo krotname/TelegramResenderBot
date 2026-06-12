@@ -12,6 +12,7 @@ from aiogram.types import Message
 from telegram_resender import __version__
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import IncomingMessage, UserProfile
+from telegram_resender.routes import default_route, load_routes
 from telegram_resender.service import ResenderService
 from telegram_resender.settings import Settings
 from telegram_resender.whitelist import Whitelist
@@ -24,7 +25,7 @@ class PendingRequest:
     """Forwarding payload waiting for explicit user confirmation."""
 
     request_id: str
-    forward_text: str
+    forward_text_by_chat_id: tuple[tuple[int, str], ...]
 
 
 def incoming_from_message(message: Message) -> IncomingMessage:
@@ -48,6 +49,11 @@ def build_service(settings: Settings) -> ResenderService:
     """Build the forwarding service from runtime settings."""
 
     whitelist = Whitelist.from_file(settings.whitelist_path)
+    routes = (
+        load_routes(settings.routes_path)
+        if settings.routes_path is not None
+        else (default_route(settings.forward_chat_id),)
+    )
     messages = settings.messages
     return ResenderService(
         whitelist=whitelist,
@@ -57,7 +63,9 @@ def build_service(settings: Settings) -> ResenderService:
         missing_username_message=messages.access_denied_missing_username,
         invalid_request_message=messages.invalid_request,
         missing_fields_message=messages.missing_fields,
+        no_route_matched_message=messages.no_route_matched,
         locale=settings.locale,
+        routes=routes,
     )
 
 
@@ -140,7 +148,8 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
         if bot is None:
             msg = "Telegram message is not bound to a bot"
             raise RuntimeError(msg)
-        await bot.send_message(settings.forward_chat_id, pending.forward_text)
+        for chat_id, forward_text in pending.forward_text_by_chat_id:
+            await bot.send_message(chat_id, forward_text)
         LOGGER.info("Forwarded confirmed request from Telegram user")
         await message.answer(messages.request_confirmed.format(request_id=pending.request_id))
 
@@ -156,13 +165,20 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
     async def forward_text(message: Message) -> None:
         decision = service.handle_text(incoming_from_message(message))
         if decision.should_forward and decision.forward_text is not None:
+            forward_payloads = tuple(
+                (
+                    chat_id,
+                    service.render_forward_text_for_target(chat_id, decision.forward_text),
+                )
+                for chat_id in decision.target_chat_ids
+            )
             if settings.confirm_before_forward:
                 if decision.request_id is None:
                     msg = "Forwarding decision is missing request_id"
                     raise RuntimeError(msg)
                 pending_requests[message.chat.id] = PendingRequest(
                     request_id=decision.request_id,
-                    forward_text=decision.forward_text,
+                    forward_text_by_chat_id=forward_payloads,
                 )
                 await message.answer(
                     messages.confirmation_prompt.format(
@@ -175,7 +191,8 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
             if bot is None:
                 msg = "Telegram message is not bound to a bot"
                 raise RuntimeError(msg)
-            await bot.send_message(settings.forward_chat_id, decision.forward_text)
+            for chat_id, forward_text in forward_payloads:
+                await bot.send_message(chat_id, forward_text)
             LOGGER.info("Forwarded message from Telegram user")
         else:
             LOGGER.info("Rejected message: %s", decision.reason)

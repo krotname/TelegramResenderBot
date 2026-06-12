@@ -6,7 +6,8 @@ User Telegram Message -> app.incoming_from_message -> service.ResenderService.ha
     - missing username: bot replies with chat-id guidance
     - unknown username: bot replies with private-bot denial
     - incomplete request: bot replies with missing-field guidance
-    - allowed: formatter.MessageFormatter.format_forward -> target chat
+    - no route matched: bot replies without forwarding
+    - allowed: formatter.MessageFormatter.format_forward -> matching target chats
     - confirmation mode: preview -> /confirm -> target chat, or /cancel
 ```
 
@@ -14,6 +15,7 @@ User Telegram Message -> app.incoming_from_message -> service.ResenderService.ha
 - `whitelist.Whitelist`: file-backed access control.
 - `service.ResenderService`: pure decision function.
 - `requests.py`: request-template parsing and required-field validation.
+- `routes.py`: optional JSON route loading and route match predicates.
 - `formatting.MessageFormatter`: stable forwarding format.
 - `app.py`: adapter layer to aiogram (`Message` -> domain model).
 - `messages.py`: localized user-facing message catalogs.
