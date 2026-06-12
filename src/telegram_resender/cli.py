@@ -6,6 +6,7 @@ import argparse
 import sys
 from asyncio import run as asyncio_run
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 from typing import TextIO
 
@@ -15,6 +16,7 @@ from pydantic import ValidationError
 from telegram_resender.app import run_polling
 from telegram_resender.routes import default_route, load_routes
 from telegram_resender.settings import Settings
+from telegram_resender.storage import RequestLog, export_records_csv
 from telegram_resender.whitelist import Whitelist
 
 
@@ -24,7 +26,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
     if args.command == "doctor":
-        raise SystemExit(run_doctor())
+        raise SystemExit(run_doctor(storage_check=args.storage_check))
+    if args.command == "export-requests":
+        raise SystemExit(export_requests(since=args.since))
     raise SystemExit(run_bot(debug=args.debug))
 
 
@@ -39,7 +43,12 @@ def run_bot(*, debug: bool = False) -> int:
     return 0
 
 
-def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+def run_doctor(
+    stdout: TextIO = sys.stdout,
+    stderr: TextIO = sys.stderr,
+    *,
+    storage_check: bool = False,
+) -> int:
     """Validate local configuration without starting Telegram polling."""
 
     try:
@@ -50,6 +59,8 @@ def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
             if settings.routes_path is not None
             else (default_route(settings.forward_chat_id),)
         )
+        if storage_check:
+            RequestLog(settings.storage_path).check()
     except ValidationError as exc:
         print(_format_validation_error(exc), file=stderr)
         return 2
@@ -66,6 +77,8 @@ def run_doctor(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
     print(f"Whitelist users: {len(whitelist.usernames)}", file=stdout)
     print(f"Routes path: {_display_optional_path(settings.routes_path)}", file=stdout)
     print(f"Routes: {len(routes)}", file=stdout)
+    print(f"Storage path: {_display_path(settings.storage_path)}", file=stdout)
+    print(f"Storage check: {'OK' if storage_check else 'not requested'}", file=stdout)
     print(f"Admin users: {len(settings.admin_ids)}", file=stdout)
     print(f"Confirm before forward: {settings.confirm_before_forward}", file=stdout)
     print(f"Polling timeout: {settings.polling_timeout}s", file=stdout)
@@ -81,8 +94,37 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("run", help="start Telegram polling")
-    subparsers.add_parser("doctor", help="validate configuration without polling")
+    doctor_parser = subparsers.add_parser("doctor", help="validate configuration without polling")
+    doctor_parser.add_argument(
+        "--storage-check",
+        action="store_true",
+        help="open SQLite storage and ensure delivery log schema exists",
+    )
+    export_parser = subparsers.add_parser(
+        "export-requests",
+        help="export delivery log rows as CSV",
+    )
+    export_parser.add_argument("--since", required=True, help="inclusive date in YYYY-MM-DD format")
     return parser
+
+
+def export_requests(
+    *,
+    since: str,
+    stdout: TextIO = sys.stdout,
+    stderr: TextIO = sys.stderr,
+) -> int:
+    """Export request delivery records as CSV."""
+
+    try:
+        settings = Settings()  # type: ignore[call-arg]
+        since_date = date.fromisoformat(since)
+        records = RequestLog(settings.storage_path).records_since(since_date)
+    except (ValidationError, ValueError, OSError) as exc:
+        print(f"Export error: {exc}", file=stderr)
+        return 2
+    export_records_csv(records, stdout)
+    return 0
 
 
 def _print_startup_error(exc: Exception, *, debug: bool) -> None:

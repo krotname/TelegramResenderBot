@@ -42,10 +42,17 @@ class Settings(BaseSettings):
         description="Optional JSON file with forwarding routes.",
         validation_alias=AliasChoices("TELEGRAM_RESENDER_ROUTES_PATH", "ROUTES_PATH"),
     )
+    storage_path: Path = Field(
+        default=Path("telegram_resender.sqlite3"),
+        description="SQLite request delivery log path.",
+        validation_alias=AliasChoices("TELEGRAM_RESENDER_STORAGE_PATH", "STORAGE_PATH"),
+    )
     polling_timeout: int = Field(default=30, ge=1, le=120)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     locale: Locale = "ru"
     confirm_before_forward: bool = False
+    delivery_max_attempts: int = Field(default=3, ge=1, le=10)
+    delivery_retry_backoff: float = Field(default=1.0, ge=0.0, le=60.0)
     admin_ids_raw: str = Field(
         default="",
         validation_alias=AliasChoices("TELEGRAM_RESENDER_ADMIN_IDS", "ADMIN_IDS"),
@@ -101,3 +108,10 @@ class Settings(BaseSettings):
         if value is None or value == "":
             return None
         return Path(value).expanduser()
+
+    @field_validator("storage_path")
+    @classmethod
+    def normalize_storage_path(cls, value: Path) -> Path:
+        """Normalize storage path tokens while keeping relative paths stable."""
+
+        return value.expanduser()

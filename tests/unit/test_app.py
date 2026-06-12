@@ -88,6 +88,7 @@ def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settin
         bot_token="123:abc",
         forward_chat_id=200,
         whitelist_path=whitelist_path,
+        storage_path=tmp_path / "requests.sqlite3",
         confirm_before_forward=confirm_before_forward,
         admin_ids_raw="10",
     )
@@ -113,6 +114,7 @@ def _settings_with_routes(tmp_path: Path) -> Settings:
         forward_chat_id=999,
         whitelist_path=whitelist_path,
         routes_path=routes_path,
+        storage_path=tmp_path / "requests.sqlite3",
         admin_ids_raw="10",
     )
 
@@ -258,6 +260,21 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
     assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_forward_text_skips_already_delivered_request(tmp_path: Path) -> None:
+    """The delivery log should make repeated request ids idempotent per target."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = FakeBot()
+
+    await handler(FakeMessage(bot=bot))
+    await handler(FakeMessage(bot=bot))
+
+    assert len(bot.sent_messages) == 1
 
 
 @pytest.mark.asyncio

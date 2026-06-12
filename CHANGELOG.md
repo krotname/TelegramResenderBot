@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0
+- Add SQLite delivery log via `TELEGRAM_RESENDER_STORAGE_PATH`.
+- Add idempotent delivery per request id and target chat.
+- Add retry/backoff for transient Telegram API send failures.
+- Persist delivery states as `pending`, `delivered`, or `failed` with last error text.
+- Add `telegram-resender doctor --storage-check`.
+- Add `telegram-resender export-requests --since YYYY-MM-DD` CSV export.
+- Add delivery, storage, CLI export, and idempotent app tests.
+
 ## 1.4.0
 - Add optional JSON route configuration via `TELEGRAM_RESENDER_ROUTES_PATH`.
 - Support multiple forwarding routes with `name`, `target_chat_id`, `allowed_usernames`, `keywords_any`, `keywords_none`, `template`, and `enabled`.

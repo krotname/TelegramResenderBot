@@ -32,6 +32,7 @@
 - Проверка обязательных полей заявки и опциональное подтверждение перед пересылкой.
 - Админские команды для статуса и перезагрузки whitelist без рестарта.
 - Опциональные multi-route правила через `routes.json`.
+- SQLite delivery log, retry/backoff и идемпотентность по request id.
 - Детерминированный формат пересылки с request id и временем заявки.
 
 ## Быстрый старт
@@ -59,6 +60,9 @@ telegram-resender
 | `TELEGRAM_RESENDER_LOCALE` | нет | `ru` или `en`, по умолчанию `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | нет | `true`, чтобы показывать preview и ждать `/confirm` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | нет | Telegram user id администраторов через запятую |
+| `TELEGRAM_RESENDER_STORAGE_PATH` | нет | SQLite delivery log, по умолчанию `telegram_resender.sqlite3` |
+| `TELEGRAM_RESENDER_DELIVERY_MAX_ATTEMPTS` | нет | попытки отправки в Telegram, по умолчанию `3` |
+| `TELEGRAM_RESENDER_DELIVERY_RETRY_BACKOFF` | нет | базовая задержка retry в секундах |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | нет | таймаут polling, по умолчанию `30` |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | нет | переопределение текста успешной заявки |
@@ -124,6 +128,18 @@ alice
 ```
 
 Заявка отправляется во все активные маршруты, где совпали пользователь и keyword-фильтры.
+
+## Надежность доставки
+
+Бот ведет SQLite-журнал доставок. Для каждой пары `request_id + target_chat_id`
+хранится статус `pending`, `delivered` или `failed`, отправитель и последняя ошибка.
+Если такая пара уже доставлена, повторная обработка того же request id не отправит
+сообщение второй раз.
+
+```bash
+telegram-resender doctor --storage-check
+telegram-resender export-requests --since 2026-06-12
+```
 
 ## Тесты и качество
 

@@ -9,6 +9,7 @@ import pytest
 
 from telegram_resender import cli
 from telegram_resender.settings import Settings
+from telegram_resender.storage import RequestLog
 
 
 def test_main_runs_polling(monkeypatch: Any) -> None:
@@ -61,14 +62,39 @@ def test_doctor_reports_loaded_configuration(
     monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", "123:abc")
     monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
     monkeypatch.setenv("TELEGRAM_RESENDER_WHITELIST_PATH", str(whitelist_path))
+    monkeypatch.setenv("TELEGRAM_RESENDER_STORAGE_PATH", str(tmp_path / "requests.sqlite3"))
 
     stdout = StringIO()
     stderr = StringIO()
 
-    assert cli.run_doctor(stdout=stdout, stderr=stderr) == 0
+    assert cli.run_doctor(stdout=stdout, stderr=stderr, storage_check=True) == 0
     assert "Configuration: OK" in stdout.getvalue()
     assert "Whitelist users: 2" in stdout.getvalue()
     assert "Routes: 1" in stdout.getvalue()
+    assert "Storage check: OK" in stdout.getvalue()
     assert "Admin users: 0" in stdout.getvalue()
     assert "Confirm before forward: False" in stdout.getvalue()
+    assert stderr.getvalue() == ""
+
+
+def test_export_requests_outputs_csv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The export command should print delivery records as CSV."""
+
+    storage_path = tmp_path / "requests.sqlite3"
+    request_log = RequestLog(storage_path)
+    request_log.begin_delivery(
+        request_id="req-1",
+        target_chat_id=100,
+        sender_username="alice",
+    )
+    request_log.mark_delivery(request_id="req-1", target_chat_id=100, status="delivered")
+    monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", "123:abc")
+    monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
+    monkeypatch.setenv("TELEGRAM_RESENDER_STORAGE_PATH", str(storage_path))
+    stdout = StringIO()
+    stderr = StringIO()
+
+    assert cli.export_requests(since="2000-01-01", stdout=stdout, stderr=stderr) == 0
+
+    assert "req-1,100,alice" in stdout.getvalue()
     assert stderr.getvalue() == ""

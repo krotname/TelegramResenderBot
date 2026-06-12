@@ -10,11 +10,13 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from telegram_resender import __version__
+from telegram_resender.delivery import send_with_retry
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.routes import default_route, load_routes
 from telegram_resender.service import ResenderService
 from telegram_resender.settings import Settings
+from telegram_resender.storage import RequestLog
 from telegram_resender.whitelist import Whitelist
 
 LOGGER = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ class PendingRequest:
 
     request_id: str
     forward_text_by_chat_id: tuple[tuple[int, str], ...]
+    sender_username: str | None
 
 
 def incoming_from_message(message: Message) -> IncomingMessage:
@@ -74,6 +77,7 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
 
     router = Router(name="telegram-resender")
     messages = settings.messages
+    request_log = RequestLog(settings.storage_path)
     pending_requests: dict[int, PendingRequest] = {}
 
     @router.message(Command("start"))
@@ -148,8 +152,14 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
         if bot is None:
             msg = "Telegram message is not bound to a bot"
             raise RuntimeError(msg)
-        for chat_id, forward_text in pending.forward_text_by_chat_id:
-            await bot.send_message(chat_id, forward_text)
+        await _deliver_payloads(
+            bot=bot,
+            request_log=request_log,
+            request_id=pending.request_id,
+            forward_text_by_chat_id=pending.forward_text_by_chat_id,
+            sender_username=pending.sender_username,
+            settings=settings,
+        )
         LOGGER.info("Forwarded confirmed request from Telegram user")
         await message.answer(messages.request_confirmed.format(request_id=pending.request_id))
 
@@ -163,7 +173,8 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
 
     @router.message(F.text)
     async def forward_text(message: Message) -> None:
-        decision = service.handle_text(incoming_from_message(message))
+        incoming = incoming_from_message(message)
+        decision = service.handle_text(incoming)
         if decision.should_forward and decision.forward_text is not None:
             forward_payloads = tuple(
                 (
@@ -179,6 +190,7 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
                 pending_requests[message.chat.id] = PendingRequest(
                     request_id=decision.request_id,
                     forward_text_by_chat_id=forward_payloads,
+                    sender_username=incoming.user.username,
                 )
                 await message.answer(
                     messages.confirmation_prompt.format(
@@ -191,8 +203,17 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
             if bot is None:
                 msg = "Telegram message is not bound to a bot"
                 raise RuntimeError(msg)
-            for chat_id, forward_text in forward_payloads:
-                await bot.send_message(chat_id, forward_text)
+            if decision.request_id is None:
+                msg = "Forwarding decision is missing request_id"
+                raise RuntimeError(msg)
+            await _deliver_payloads(
+                bot=bot,
+                request_log=request_log,
+                request_id=decision.request_id,
+                forward_text_by_chat_id=forward_payloads,
+                sender_username=incoming.user.username,
+                settings=settings,
+            )
             LOGGER.info("Forwarded message from Telegram user")
         else:
             LOGGER.info("Rejected message: %s", decision.reason)
@@ -213,6 +234,47 @@ def _telegram_user_id(message: Message) -> int | None:
 def _is_admin(message: Message, admin_ids: frozenset[int]) -> bool:
     user_id = _telegram_user_id(message)
     return user_id in admin_ids if user_id is not None else False
+
+
+async def _deliver_payloads(
+    *,
+    bot: Bot,
+    request_log: RequestLog,
+    request_id: str,
+    forward_text_by_chat_id: tuple[tuple[int, str], ...],
+    sender_username: str | None,
+    settings: Settings,
+) -> None:
+    for chat_id, forward_text in forward_text_by_chat_id:
+        should_send = request_log.begin_delivery(
+            request_id=request_id,
+            target_chat_id=chat_id,
+            sender_username=sender_username,
+        )
+        if not should_send:
+            LOGGER.info("Skipped already delivered request %s to %s", request_id, chat_id)
+            continue
+        try:
+            await send_with_retry(
+                bot.send_message,
+                chat_id=chat_id,
+                text=forward_text,
+                max_attempts=settings.delivery_max_attempts,
+                backoff_seconds=settings.delivery_retry_backoff,
+            )
+        except Exception as exc:
+            request_log.mark_delivery(
+                request_id=request_id,
+                target_chat_id=chat_id,
+                status="failed",
+                error=str(exc),
+            )
+            raise
+        request_log.mark_delivery(
+            request_id=request_id,
+            target_chat_id=chat_id,
+            status="delivered",
+        )
 
 
 def create_dispatcher(settings: Settings, service: ResenderService) -> Dispatcher:

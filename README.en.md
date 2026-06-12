@@ -31,6 +31,7 @@ The project is intentionally small and practical:
 - required-field validation and optional confirmation before forwarding
 - admin commands for status checks and whitelist reloads without restart
 - optional multi-route rules through `routes.json`
+- SQLite delivery log, retry/backoff, and request-id idempotency
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
@@ -68,6 +69,9 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | no | `true` to show a preview and wait for `/confirm` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | no | comma-separated Telegram user IDs allowed to run admin commands |
+| `TELEGRAM_RESENDER_STORAGE_PATH` | no | SQLite delivery log path, default `telegram_resender.sqlite3` |
+| `TELEGRAM_RESENDER_DELIVERY_MAX_ATTEMPTS` | no | Telegram send attempts, default `3` |
+| `TELEGRAM_RESENDER_DELIVERY_RETRY_BACKOFF` | no | base retry delay in seconds |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
 | `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned to unknown users |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
@@ -133,6 +137,17 @@ If `TELEGRAM_RESENDER_ROUTES_PATH` is not set, the bot uses a single route from
 ```
 
 The bot forwards a request to every enabled route matching the user and keyword filters.
+
+## Delivery reliability
+
+The bot keeps a SQLite delivery log. Each `request_id + target_chat_id` pair stores
+`pending`, `delivered`, or `failed` status, sender, and the last error. Once a pair is
+delivered, processing the same request id again will not send a duplicate message.
+
+```bash
+telegram-resender doctor --storage-check
+telegram-resender export-requests --since 2026-06-12
+```
 
 ## Development
 
