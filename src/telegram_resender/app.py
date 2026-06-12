@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
+from telegram_resender import __version__
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import IncomingMessage, UserProfile
 from telegram_resender.service import ResenderService
@@ -83,6 +84,52 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
     async def template(message: Message) -> None:
         await message.answer(messages.template)
 
+    @router.message(Command("whoami"))
+    async def whoami(message: Message) -> None:
+        await message.answer(
+            messages.whoami.format(
+                user_id=_telegram_user_id(message) or "unknown",
+                chat_id=message.chat.id,
+            )
+        )
+
+    @router.message(Command("admin_status"))
+    async def admin_status(message: Message) -> None:
+        if not _is_admin(message, settings.admin_ids):
+            await message.answer(messages.admin_access_denied)
+            return
+        await message.answer(
+            messages.admin_status.format(
+                version=__version__,
+                locale=settings.locale,
+                forward_chat_id=settings.forward_chat_id,
+                whitelist_count=service.whitelist_count,
+                admin_count=len(settings.admin_ids),
+                confirm_before_forward=settings.confirm_before_forward,
+            )
+        )
+
+    @router.message(Command("whitelist_count"))
+    async def whitelist_count(message: Message) -> None:
+        if not _is_admin(message, settings.admin_ids):
+            await message.answer(messages.admin_access_denied)
+            return
+        await message.answer(messages.whitelist_count.format(count=service.whitelist_count))
+
+    @router.message(Command("reload_whitelist"))
+    async def reload_whitelist(message: Message) -> None:
+        if not _is_admin(message, settings.admin_ids):
+            await message.answer(messages.admin_access_denied)
+            return
+        try:
+            count = service.reload_whitelist(settings.whitelist_path)
+        except (OSError, ValueError) as exc:
+            LOGGER.warning("Failed to reload whitelist: %s", exc)
+            await message.answer(messages.whitelist_reload_failed.format(error=exc))
+            return
+        LOGGER.info("Whitelist reloaded by admin")
+        await message.answer(messages.whitelist_reloaded.format(count=count))
+
     @router.message(Command("confirm"))
     async def confirm_request(message: Message) -> None:
         pending = pending_requests.pop(message.chat.id, None)
@@ -139,6 +186,16 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
         await message.answer(messages.unsupported_message)
 
     return router
+
+
+def _telegram_user_id(message: Message) -> int | None:
+    user = message.from_user
+    return user.id if user else None
+
+
+def _is_admin(message: Message, admin_ids: frozenset[int]) -> bool:
+    user_id = _telegram_user_id(message)
+    return user_id in admin_ids if user_id is not None else False
 
 
 def create_dispatcher(settings: Settings, service: ResenderService) -> Dispatcher:

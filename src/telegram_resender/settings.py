@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     locale: Locale = "ru"
     confirm_before_forward: bool = False
+    admin_ids_raw: str = Field(
+        default="",
+        validation_alias=AliasChoices("TELEGRAM_RESENDER_ADMIN_IDS", "ADMIN_IDS"),
+        description="Comma-separated Telegram user IDs allowed to run admin commands.",
+    )
     request_accepted_message: str | None = None
     access_denied_message: str | None = None
 
@@ -51,6 +56,14 @@ class Settings(BaseSettings):
         return message_catalog(self.locale).with_overrides(
             request_accepted=self.request_accepted_message,
             access_denied_unknown=self.access_denied_message,
+        )
+
+    @property
+    def admin_ids(self) -> frozenset[int]:
+        """Telegram user IDs allowed to run admin commands."""
+
+        return frozenset(
+            int(part.strip()) for part in self.admin_ids_raw.split(",") if part.strip()
         )
 
     @field_validator("bot_token")

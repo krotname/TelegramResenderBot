@@ -29,6 +29,7 @@ The project is intentionally small and practical:
 - separate guidance for unknown users, missing Telegram usernames, and incomplete requests
 - unsupported message guidance for photos, documents, stickers, and voice messages
 - required-field validation and optional confirmation before forwarding
+- admin commands for status checks and whitelist reloads without restart
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
 - unit, integration, conversation and security test categories
@@ -64,6 +65,7 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | no | CSV path, default `whitelist.csv` |
 | `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | no | `true` to show a preview and wait for `/confirm` |
+| `TELEGRAM_RESENDER_ADMIN_IDS` | no | comma-separated Telegram user IDs allowed to run admin commands |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
 | `TELEGRAM_RESENDER_ACCESS_DENIED_MESSAGE` | no | text returned to unknown users |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | no | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
@@ -94,6 +96,17 @@ The bot currently accepts text only. Media and documents are not forwarded.
 Required fields are building, arrival date/time, vehicle, and license plate. With
 `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD=true`, the bot shows a preview and only
 forwards after `/confirm`. `/cancel` discards the pending request.
+
+## Administration
+
+- `/whoami` shows the current Telegram user id and chat id. It is public so an
+  operator can discover the id needed for `.env`.
+- `/admin_status` reports version, locale, target chat, whitelist size, admin
+  count, and confirmation mode.
+- `/whitelist_count` shows the currently loaded whitelist size.
+- `/reload_whitelist` reloads the CSV whitelist without restarting the process.
+
+All admin commands except `/whoami` require `TELEGRAM_RESENDER_ADMIN_IDS`.
 
 ## Development
 

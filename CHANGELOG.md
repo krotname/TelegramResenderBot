@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+- Add `TELEGRAM_RESENDER_ADMIN_IDS` for Telegram user IDs allowed to run admin operations.
+- Add `/whoami` so users can discover their Telegram user id and chat id.
+- Add admin-only `/admin_status`, `/whitelist_count`, and `/reload_whitelist` commands.
+- Support runtime whitelist reload without restarting the bot process.
+- Add admin access-denied responses and audit logging for whitelist reload attempts.
+- Include admin user count in `telegram-resender doctor`.
+- Expand tests for admin authorization, runtime reload, and admin id parsing.
+
 ## 1.2.0
 - Add labeled request parsing for Russian and English templates.
 - Validate required request fields: building, arrival date/time, vehicle, and license plate.

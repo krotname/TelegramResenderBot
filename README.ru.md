@@ -27,6 +27,7 @@
 - Ответ на неподдерживаемые типы сообщений: фото, документы, стикеры, голосовые.
 - Диагностика конфигурации через `telegram-resender doctor`.
 - Проверка обязательных полей заявки и опциональное подтверждение перед пересылкой.
+- Админские команды для статуса и перезагрузки whitelist без рестарта.
 - Детерминированный формат пересылки с request id и временем заявки.
 
 ## Быстрый старт
@@ -52,6 +53,7 @@ telegram-resender
 | `TELEGRAM_RESENDER_WHITELIST_PATH` | нет | путь к whitelist.csv, по умолчанию `whitelist.csv` |
 | `TELEGRAM_RESENDER_LOCALE` | нет | `ru` или `en`, по умолчанию `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | нет | `true`, чтобы показывать preview и ждать `/confirm` |
+| `TELEGRAM_RESENDER_ADMIN_IDS` | нет | Telegram user id администраторов через запятую |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | нет | таймаут polling, по умолчанию `30` |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | нет | переопределение текста успешной заявки |
@@ -82,6 +84,17 @@ alice
 Если включить `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD=true`, бот покажет preview
 заявки и отправит ее администратору только после `/confirm`. Команда `/cancel`
 отменяет ожидающую подтверждения заявку.
+
+## Администрирование
+
+- `/whoami` показывает Telegram user id и chat id. Команда доступна всем, чтобы
+  администратор мог узнать свой id для `.env`.
+- `/admin_status` показывает версию, locale, целевой чат, размер whitelist,
+  число администраторов и режим подтверждения.
+- `/whitelist_count` показывает текущий размер whitelist.
+- `/reload_whitelist` перечитывает CSV whitelist без рестарта процесса.
+
+Все команды кроме `/whoami` доступны только id из `TELEGRAM_RESENDER_ADMIN_IDS`.
 
 ## Тесты и качество
 

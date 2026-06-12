@@ -50,6 +50,7 @@ class FakeMessage:
         *,
         text: str | None = VALID_REQUEST,
         username: str | None = "alice",
+        user_id: int | None = 10,
         bot: FakeBot | None = None,
     ) -> None:
         self.chat = SimpleNamespace(id=100)
@@ -57,7 +58,12 @@ class FakeMessage:
         self.message_id = 55
         self.date = datetime(2026, 6, 12, 10, 30, tzinfo=UTC)
         self.from_user = (
-            SimpleNamespace(username=username, first_name="Alice", last_name="Tester")
+            SimpleNamespace(
+                id=user_id,
+                username=username,
+                first_name="Alice",
+                last_name="Tester",
+            )
             if username is not None
             else None
         )
@@ -83,6 +89,7 @@ def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settin
         forward_chat_id=200,
         whitelist_path=whitelist_path,
         confirm_before_forward=confirm_before_forward,
+        admin_ids_raw="10",
     )
 
 
@@ -128,6 +135,86 @@ async def test_command_handlers_answer_static_messages(tmp_path: Path) -> None:
     assert help_message.answers == [HELP_MESSAGE]
     assert car_message.answers == [CAR_MODE_MESSAGE]
     assert template_message.answers == [CAR_MODE_MESSAGE]
+
+
+@pytest.mark.asyncio
+async def test_whoami_reports_user_and_chat_ids(tmp_path: Path) -> None:
+    """Any user should be able to inspect their ids for admin setup."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["whoami"]
+    message = FakeMessage(user_id=777)
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.whoami.format(user_id=777, chat_id=100)]
+
+
+@pytest.mark.asyncio
+async def test_admin_status_requires_admin_id(tmp_path: Path) -> None:
+    """Admin commands should reject users outside TELEGRAM_RESENDER_ADMIN_IDS."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["admin_status"]
+    message = FakeMessage(user_id=999)
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.admin_access_denied]
+
+
+@pytest.mark.asyncio
+async def test_admin_status_reports_runtime_state(tmp_path: Path) -> None:
+    """Admins should see operational state without shell access."""
+
+    settings = _settings(tmp_path, confirm_before_forward=True)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["admin_status"]
+    message = FakeMessage(user_id=10)
+
+    await handler(message)
+
+    assert "Whitelist users: 1" in message.answers[0]
+    assert "Admin users: 1" in message.answers[0]
+    assert "Confirm before forward: True" in message.answers[0]
+
+
+@pytest.mark.asyncio
+async def test_admin_can_reload_whitelist(tmp_path: Path) -> None:
+    """Whitelist reload should update forwarding decisions without restarting."""
+
+    settings = _settings(tmp_path)
+    service = build_service(settings)
+    router = create_router(settings, service)
+    handlers = _message_handlers(router)
+    whitelist_path = settings.whitelist_path
+    whitelist_path.write_text("alice\nmallory\n", encoding="utf-8")
+    admin = FakeMessage(user_id=10)
+
+    await handlers["reload_whitelist"](admin)
+
+    assert admin.answers == [RU_MESSAGES.whitelist_reloaded.format(count=2)]
+    bot = FakeBot()
+    message = FakeMessage(username="mallory", user_id=999, bot=bot)
+    await handlers["forward_text"](message)
+    assert message.answers == [REQUEST_ACCEPTED_MESSAGE]
+    assert len(bot.sent_messages) == 1
+
+
+@pytest.mark.asyncio
+async def test_admin_can_query_whitelist_count(tmp_path: Path) -> None:
+    """Admins should be able to query the current whitelist size."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["whitelist_count"]
+    message = FakeMessage(user_id=10)
+
+    await handler(message)
+
+    assert message.answers == [RU_MESSAGES.whitelist_count.format(count=1)]
 
 
 @pytest.mark.asyncio

@@ -20,6 +20,16 @@ User Telegram Message -> app.incoming_from_message -> service.ResenderService.ha
 - `cli.py`: explicit application entrypoint and `doctor` diagnostics.
 - `src/telegram_resender/__main__.py`: module entry point for `python -m telegram_resender`.
 
+Admin command flow:
+
+```text
+/whoami -> reports Telegram user id and chat id
+/admin_status, /whitelist_count, /reload_whitelist ->
+  app._is_admin checks TELEGRAM_RESENDER_ADMIN_IDS ->
+    denied: localized admin access denial
+    allowed: service status or service.reload_whitelist(settings.whitelist_path)
+```
+
 ## Design goals
 
 - Keep bot logic decoupled from Telegram SDK where possible.

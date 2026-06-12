@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import ForwardingDecision, IncomingMessage
 from telegram_resender.requests import format_missing_fields, parse_request
@@ -30,6 +32,18 @@ class ResenderService:
         self._invalid_request_message = invalid_request_message
         self._missing_fields_message = missing_fields_message
         self._locale = locale
+
+    @property
+    def whitelist_count(self) -> int:
+        """Number of usernames currently allowed by the service."""
+
+        return len(self._whitelist.usernames)
+
+    def reload_whitelist(self, path: Path) -> int:
+        """Reload whitelist from disk and return the new user count."""
+
+        self._whitelist = Whitelist.from_file(path)
+        return self.whitelist_count
 
     def handle_text(self, message: IncomingMessage) -> ForwardingDecision:
         """Decide whether a text message should be forwarded.

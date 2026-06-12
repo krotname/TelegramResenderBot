@@ -43,6 +43,12 @@ class MessageCatalog:
     request_confirmed: str
     request_cancelled: str
     no_pending_request: str
+    admin_access_denied: str
+    admin_status: str
+    whitelist_count: str
+    whitelist_reloaded: str
+    whitelist_reload_failed: str
+    whoami: str
 
     def with_overrides(
         self,
@@ -96,6 +102,20 @@ RU_MESSAGES = MessageCatalog(
     request_confirmed="Заявка {request_id} подтверждена и передана администратору.",
     request_cancelled="Заявка {request_id} отменена.",
     no_pending_request="Нет заявки, ожидающей подтверждения.",
+    admin_access_denied="Эта команда доступна только администратору.",
+    admin_status=(
+        "Статус бота:\n"
+        "Версия: {version}\n"
+        "Locale: {locale}\n"
+        "Целевой чат: {forward_chat_id}\n"
+        "Whitelist users: {whitelist_count}\n"
+        "Admin users: {admin_count}\n"
+        "Confirm before forward: {confirm_before_forward}"
+    ),
+    whitelist_count="В белом списке пользователей: {count}.",
+    whitelist_reloaded="Белый список перезагружен. Пользователей: {count}.",
+    whitelist_reload_failed="Не удалось перезагрузить белый список: {error}",
+    whoami="Ваш Telegram user id: {user_id}\nChat id: {chat_id}",
 )
 
 EN_MESSAGES = MessageCatalog(
@@ -134,6 +154,20 @@ EN_MESSAGES = MessageCatalog(
     request_confirmed="Request {request_id} has been confirmed and sent to the administrator.",
     request_cancelled="Request {request_id} has been cancelled.",
     no_pending_request="There is no request waiting for confirmation.",
+    admin_access_denied="This command is available to administrators only.",
+    admin_status=(
+        "Bot status:\n"
+        "Version: {version}\n"
+        "Locale: {locale}\n"
+        "Forward chat: {forward_chat_id}\n"
+        "Whitelist users: {whitelist_count}\n"
+        "Admin users: {admin_count}\n"
+        "Confirm before forward: {confirm_before_forward}"
+    ),
+    whitelist_count="Whitelisted users: {count}.",
+    whitelist_reloaded="Whitelist reloaded. Users: {count}.",
+    whitelist_reload_failed="Failed to reload whitelist: {error}",
+    whoami="Your Telegram user id: {user_id}\nChat id: {chat_id}",
 )
 
 CATALOGS: dict[Locale, MessageCatalog] = {
