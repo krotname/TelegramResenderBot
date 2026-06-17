@@ -17,12 +17,7 @@ REQUEST_TEMPLATE_RU = (
 )
 
 REQUEST_TEMPLATE_EN = (
-    "Request template:\n"
-    "Building: \n"
-    "Arrival date and time: \n"
-    "Vehicle: \n"
-    "License plate: \n"
-    "Comment: "
+    "Request template:\nBuilding: \nArrival date and time: \nVehicle: \nLicense plate: \nComment: "
 )
 
 
@@ -78,8 +73,7 @@ RU_MESSAGES = MessageCatalog(
     template=REQUEST_TEMPLATE_RU,
     request_accepted="Заявка принята и передана администратору.",
     access_denied_unknown=(
-        "Этот бот закрытый. Попросите администратора добавить ваш Telegram username "
-        "в белый список."
+        "Этот бот закрытый. Попросите администратора добавить ваш Telegram username в белый список."
     ),
     access_denied_missing_username=(
         "У вас не задан Telegram username. Создайте username в настройках Telegram "
