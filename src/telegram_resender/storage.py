@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import csv
 import sqlite3
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Literal, TextIO
 
 DeliveryStatus = Literal["pending", "delivered", "failed", "skipped"]
+_DANGEROUS_CSV_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,8 +139,14 @@ class RequestLog:
                 """
             )
 
-    def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._path)
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        connection = sqlite3.connect(self._path)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
 
 def export_records_csv(records: Iterable[DeliveryRecord], stream: TextIO) -> None:
@@ -159,15 +167,23 @@ def export_records_csv(records: Iterable[DeliveryRecord], stream: TextIO) -> Non
     for record in records:
         writer.writerow(
             [
-                record.request_id,
+                _safe_csv_cell(record.request_id),
                 record.target_chat_id,
-                record.sender_username or "",
-                record.created_at,
-                record.validation_status,
-                record.delivery_status,
-                record.last_error or "",
+                _safe_csv_cell(record.sender_username),
+                _safe_csv_cell(record.created_at),
+                _safe_csv_cell(record.validation_status),
+                _safe_csv_cell(record.delivery_status),
+                _safe_csv_cell(record.last_error),
             ]
         )
+
+
+def _safe_csv_cell(value: str | None) -> str:
+    if not value:
+        return ""
+    if value.startswith(_DANGEROUS_CSV_PREFIXES):
+        return f"'{value}"
+    return value
 
 
 def _utc_now() -> str:

@@ -44,3 +44,27 @@ def test_request_log_exports_csv(tmp_path: Path) -> None:
     assert "request_id,target_chat_id,sender_username" in output.getvalue()
     assert "req-1,100,alice" in output.getvalue()
     assert "failed,boom" in output.getvalue()
+
+
+def test_request_log_export_neutralizes_spreadsheet_formulas(tmp_path: Path) -> None:
+    """CSV export should not emit formula-prefixed text fields directly."""
+
+    request_log = RequestLog(tmp_path / "requests.sqlite3")
+    request_log.begin_delivery(
+        request_id="=req-1",
+        target_chat_id=100,
+        sender_username="@alice",
+    )
+    request_log.mark_delivery(
+        request_id="=req-1",
+        target_chat_id=100,
+        status="failed",
+        error="+boom",
+    )
+    records = request_log.records_since(since=date(2000, 1, 1))
+    output = StringIO()
+
+    export_records_csv(records, output)
+
+    assert "'=req-1,100,'@alice" in output.getvalue()
+    assert "failed,'+boom" in output.getvalue()
