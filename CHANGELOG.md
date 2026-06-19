@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.2
+- Harden storage, message handling, dependency locks, Docker metadata, and CI/release checks after repository audit.
+
 ## 1.6.1
 - Apply `ruff format` to match the CI formatter gate after the `1.6.0` release.
 - No functional changes.
