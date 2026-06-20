@@ -45,7 +45,7 @@ jobs:
         run: pytest
       - name: Build wheel and source distribution
         run: |
-          rm -rf build dist *.egg-info src/*.egg-info
+          rm -rf build dist ./*.egg-info src/*.egg-info
           python -m build --sdist --wheel
       - name: Generate checksums
         run: |
