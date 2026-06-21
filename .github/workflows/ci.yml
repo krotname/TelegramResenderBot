@@ -88,9 +88,10 @@ jobs:
       - name: Generate coverage badge
         if: matrix.python-version == '3.12' && github.event_name == 'push'
         run: |
-          pip install coverage-badge
+          pip install genbadge[coverage]
+          coverage xml -o coverage.xml
           mkdir -p .github/badges
-          coverage-badge -o .github/badges/coverage.svg -f
+          genbadge coverage -i coverage.xml -o .github/badges/coverage.svg
       - name: Commit coverage badge
         if: matrix.python-version == '3.12' && github.event_name == 'push'
         run: |
