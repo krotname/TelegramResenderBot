@@ -7,7 +7,7 @@ on:
     branches: [ "main", "master" ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lint:
@@ -68,8 +68,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-        with:
-          persist-credentials: false
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
@@ -87,6 +85,20 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
           if-no-files-found: ignore
+      - name: Generate coverage badge
+        if: matrix.python-version == '3.12' && github.event_name == 'push'
+        run: |
+          pip install coverage-badge
+          mkdir -p .github/badges
+          coverage-badge -o .github/badges/coverage.svg -f
+      - name: Commit coverage badge
+        if: matrix.python-version == '3.12' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/
+          git diff --staged --quiet || git commit -m "chore: update coverage badge [skip ci]"
+          git push
 
   security:
     name: Security audit
