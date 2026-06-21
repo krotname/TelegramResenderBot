@@ -172,6 +172,21 @@ For production logs, use:
 TELEGRAM_RESENDER_LOG_FORMAT=JSON
 ```
 
+## Releases and Supply Chain
+
+- The Docker base image is pinned by digest in [Dockerfile](Dockerfile).
+- Python runtime/dev/audit dependencies install from hash-locked `requirements*.lock` files.
+- GitHub Actions are pinned by commit SHA.
+- The release workflow builds wheel and sdist packages, publishes `SHA256SUMS.txt`, and creates GitHub provenance attestations.
+- Dependency update rules are documented in [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md).
+
+Release artifact verification:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+gh attestation verify telegram_resender-*.whl --repo krotname/TelegramResenderBot
+```
+
 ## Known limitations
 
 - This is bot-based intake/forwarding, not a userbot.
@@ -212,7 +227,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md).
+See [SECURITY.md](SECURITY.md) and [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md).
 
 ## License
 
@@ -221,6 +236,7 @@ GPL-3.0 License. See [LICENSE](LICENSE).
 ## Design docs
 
 - [Architecture](docs/architecture.md)
+- [Dependency policy](docs/DEPENDENCY_POLICY.md)
 - [Testing strategy](docs/testing.md)
 - [UX and competitive roadmap](docs/ux-competitive-roadmap.ru.md)
 

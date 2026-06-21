@@ -164,6 +164,21 @@ Production env template: [.env.production.example](.env.production.example).
 TELEGRAM_RESENDER_LOG_FORMAT=JSON
 ```
 
+## Релизы и Supply Chain
+
+- Docker base image закреплен по digest в [Dockerfile](Dockerfile).
+- Python runtime/dev/audit зависимости ставятся из hash-locked файлов `requirements*.lock`.
+- GitHub Actions закреплены по commit SHA.
+- Релизный workflow собирает wheel и sdist, публикует `SHA256SUMS.txt` и GitHub provenance attestation.
+- Правила обновления зависимостей описаны в [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md).
+
+Проверка релизных артефактов:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+gh attestation verify telegram_resender-*.whl --repo krotname/TelegramResenderBot
+```
+
 ## Ограничения
 
 - Это bot-based intake/forwarding, не userbot.
@@ -198,4 +213,4 @@ mypy src tests
 
 ## Безопасность
 
-Смотрите [SECURITY.md](SECURITY.md).
+Смотрите [SECURITY.md](SECURITY.md) и [docs/DEPENDENCY_POLICY.md](docs/DEPENDENCY_POLICY.md).
