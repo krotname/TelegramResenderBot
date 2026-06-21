@@ -7,7 +7,7 @@ on:
     branches: [ "main", "master" ]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   lint:
@@ -85,21 +85,15 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
           if-no-files-found: ignore
-      - name: Generate coverage badge
+      - name: Generate coverage XML
         if: matrix.python-version == '3.12' && github.event_name == 'push'
-        run: |
-          pip install 'genbadge[coverage]'
-          coverage xml -o coverage.xml
-          mkdir -p .github/badges
-          genbadge coverage -i coverage.xml -o .github/badges/coverage.svg
-      - name: Commit coverage badge
+        run: coverage xml -o coverage.xml
+      - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12' && github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/badges/
-          git diff --staged --quiet || git commit -m "chore: update coverage badge [skip ci]"
-          git push
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
 
   security:
     name: Security audit

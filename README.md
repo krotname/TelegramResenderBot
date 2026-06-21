@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml?query=branch%3Amaster)
 [![CodeQL](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/krotname/TelegramResenderBot/actions/workflows/codeql.yml?query=branch%3Amaster)
-[![Coverage](.github/badges/coverage.svg)](https://github.com/krotname/TelegramResenderBot/actions/workflows/ci.yml?query=branch%3Amaster)
+[![Coverage](https://codecov.io/gh/krotname/TelegramResenderBot/branch/master/graph/badge.svg)](https://app.codecov.io/gh/krotname/TelegramResenderBot)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/krotname/TelegramResenderBot/badge)](https://securityscorecards.dev/viewer/?uri=github.com/krotname/TelegramResenderBot)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13150/badge)](https://www.bestpractices.dev/projects/13150)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
