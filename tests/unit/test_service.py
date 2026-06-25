@@ -185,7 +185,7 @@ def test_service_matches_route_keywords_only_against_building_field() -> None:
     """Keywords in free-form fields must not add unintended destinations."""
 
     service = ResenderService(
-        whitelist=Whitelist(["alice"]),
+        whitelist=Whitelist([10]),
         formatter=MessageFormatter(),
         request_accepted_message="ok",
         access_denied_message="deny",
@@ -218,7 +218,7 @@ def test_service_matches_route_keywords_only_against_building_field() -> None:
         IncomingMessage(
             chat_id=1,
             text=f"{VALID_REQUEST}\nКомментарий: пожалуйста не отправляйте в Башня Б",
-            user=UserProfile(username="alice"),
+            user=UserProfile(id=10, username="alice"),
         )
     )
 

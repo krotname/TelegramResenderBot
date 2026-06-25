@@ -361,7 +361,7 @@ async def test_forward_text_rejects_unknown_user(tmp_path: Path) -> None:
     router = create_router(settings, build_service(settings))
     handler = _message_handlers(router)["forward_text"]
     bot = FakeBot()
-    message = FakeMessage(username="mallory", bot=bot)
+    message = FakeMessage(username="mallory", user_id=999, bot=bot)
 
     await handler(message)
 
