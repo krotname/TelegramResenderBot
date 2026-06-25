@@ -46,7 +46,7 @@ jobs:
       - name: Build wheel and source distribution
         run: |
           rm -rf build dist ./*.egg-info src/*.egg-info
-          python -m build --sdist --wheel
+          python -m build --sdist --wheel --no-isolation
       - name: Generate checksums
         run: |
           cd dist
