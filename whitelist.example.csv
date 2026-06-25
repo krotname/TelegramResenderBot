@@ -1,4 +1,4 @@
-# Telegram usernames allowed to submit requests.
-# Use one username per line. Leading @ and case do not matter.
-building_admin
-@gate_worker
+# Telegram numeric user IDs allowed to submit requests.
+# Use one immutable numeric Telegram user ID per line. Use /whoami to discover IDs.
+123456789
+987654321

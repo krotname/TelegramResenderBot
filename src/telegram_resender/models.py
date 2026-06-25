@@ -11,7 +11,8 @@ from typing import Literal
 class UserProfile:
     """Telegram user fields needed by the resender."""
 
-    username: str | None
+    id: int | None = None
+    username: str | None = None
     first_name: str | None = None
     last_name: str | None = None
 
@@ -28,9 +29,9 @@ class IncomingMessage:
 
 
 DecisionReason = Literal[
-    "allowed_username",
-    "missing_username",
-    "unknown_username",
+    "allowed_user_id",
+    "missing_user_id",
+    "unknown_user_id",
     "invalid_request",
     "no_route_matched",
 ]

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from telegram_resender.whitelist import Whitelist, normalize_username
+from telegram_resender.whitelist import Whitelist, normalize_username, parse_user_id
 
 
 def test_normalize_username_handles_variants() -> None:
@@ -20,13 +20,13 @@ def test_whitelist_loads_csv_and_normalizes(tmp_path: Path) -> None:
     """Ensure first-column parsing and comment support are preserved."""
 
     file_path = tmp_path / "whitelist.csv"
-    file_path.write_text("Alice\n@Bob\n# ignored\ncarol , extra\n", encoding="utf-8")
+    file_path.write_text("10\n20\n# ignored\n30, extra\n", encoding="utf-8")
     whitelist = Whitelist.from_file(file_path)
 
-    assert whitelist.contains("alice")
-    assert whitelist.contains("BOB")
-    assert whitelist.contains("@carol")
-    assert not whitelist.contains("ignored")
+    assert whitelist.contains(10)
+    assert whitelist.contains("20")
+    assert whitelist.contains(30)
+    assert not whitelist.contains(40)
 
 
 def test_whitelist_missing_file_raises_error() -> None:
@@ -34,3 +34,11 @@ def test_whitelist_missing_file_raises_error() -> None:
 
     with pytest.raises(FileNotFoundError):
         Whitelist.from_file(Path("missing.csv"))
+
+
+def test_parse_user_id_rejects_usernames() -> None:
+    """Usernames must not be accepted as authorization identifiers."""
+
+    assert parse_user_id(" 123 ") == 123
+    with pytest.raises(ValueError):
+        parse_user_id("alice")

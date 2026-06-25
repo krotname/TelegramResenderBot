@@ -40,9 +40,9 @@ class ResenderService:
 
     @property
     def whitelist_count(self) -> int:
-        """Number of usernames currently allowed by the service."""
+        """Number of Telegram user ids currently allowed by the service."""
 
-        return len(self._whitelist.usernames)
+        return len(self._whitelist.user_ids)
 
     def reload_whitelist(self, path: Path) -> int:
         """Reload whitelist from disk and return the new user count."""
@@ -53,23 +53,22 @@ class ResenderService:
     def handle_text(self, message: IncomingMessage) -> ForwardingDecision:
         """Decide whether a text message should be forwarded.
 
-        A missing Telegram username is denied even if the chat id is known. The original
-        bot used usernames as the trust boundary, so this keeps the rule explicit and
-        testable instead of silently broadening access.
+        A missing Telegram numeric user id is denied explicitly. Usernames are public,
+        mutable handles, so they must not be used as the trust boundary.
         """
 
-        if message.user.username is None:
+        if message.user.id is None:
             return ForwardingDecision(
                 should_forward=False,
                 response_text=self._missing_username_message.format(chat_id=message.chat_id),
-                reason="missing_username",
+                reason="missing_user_id",
             )
 
-        if not self._whitelist.contains(message.user.username):
+        if not self._whitelist.contains(message.user.id):
             return ForwardingDecision(
                 should_forward=False,
                 response_text=self._access_denied_message,
-                reason="unknown_username",
+                reason="unknown_user_id",
             )
 
         if not message.text.strip() or not self._looks_like_request(message.text):
@@ -108,7 +107,7 @@ class ResenderService:
         return ForwardingDecision(
             should_forward=True,
             response_text=self._request_accepted_message,
-            reason="allowed_username",
+            reason="allowed_user_id",
             forward_text=forward_text,
             request_id=request_id,
             target_chat_ids=tuple(route.target_chat_id for route in matching_routes),

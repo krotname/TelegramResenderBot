@@ -22,7 +22,7 @@ class RouteRule:
     template: str | None
     enabled: bool = True
 
-    def matches(self, *, username: str, text: str) -> bool:
+    def matches(self, *, username: str | None, text: str) -> bool:
         """Return whether this route should receive the request."""
 
         if not self.enabled:
