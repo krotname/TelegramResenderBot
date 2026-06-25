@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     )
     whitelist_path: Path = Field(
         default=Path("whitelist.csv"),
-        description="CSV file with allowed Telegram usernames.",
+        description="CSV file with allowed Telegram numeric user IDs.",
         validation_alias=AliasChoices("TELEGRAM_RESENDER_WHITELIST_PATH", "WHITELIST_PATH"),
     )
     routes_path: Path | None = Field(

@@ -56,6 +56,7 @@ def incoming_from_message(message: Message) -> IncomingMessage:
         chat_id=message.chat.id,
         text=message.text or "",
         user=UserProfile(
+            id=user.id if user else None,
             username=user.username if user else None,
             first_name=user.first_name if user else None,
             last_name=user.last_name if user else None,

@@ -12,7 +12,7 @@
 ## Overview
 
 Telegram Resender is a focused bot that checks incoming text messages against a whitelist of
-Telegram usernames and forwards approved requests to a configured target chat.
+immutable Telegram numeric user IDs and forwards approved requests to a configured target chat.
 
 The project is intentionally small and practical:
 
@@ -26,7 +26,7 @@ The project is intentionally small and practical:
 - `/start`, `/help`, `/template`, `/avto` commands
 - whitelist-based access control
 - localized Russian and English bot messages
-- separate guidance for unknown users, missing Telegram usernames, and incomplete requests
+- separate guidance for unknown users, missing sender information, and incomplete requests
 - unsupported message guidance for photos, documents, stickers, and voice messages
 - required-field validation and optional confirmation before forwarding
 - admin commands for status checks and whitelist reloads without restart
@@ -79,12 +79,12 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_LOG_FORMAT` | no | `TEXT` or `JSON`, default `TEXT` |
 | `TELEGRAM_RESENDER_POLLING_TIMEOUT` | no | Polling timeout, default `30` |
 
-Whitelist format:
+Whitelist format (one immutable numeric Telegram user ID per line; use `/whoami` to discover IDs):
 
 ```csv
 # whitelist.csv
-alice
-@bob
+123456789
+987654321
 ```
 
 ## Request format

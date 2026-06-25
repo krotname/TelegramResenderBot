@@ -19,7 +19,7 @@ def test_build_service_uses_project_files(tmp_path: Path) -> None:
     """Settings should load and inject dependencies without direct Telegram SDK calls."""
 
     whitelist_file = tmp_path / "whitelist.csv"
-    whitelist_file.write_text("alice\n", encoding="utf-8")
+    whitelist_file.write_text("10\n", encoding="utf-8")
     settings = Settings(
         bot_token="123:abc",
         forward_chat_id=100,
@@ -30,7 +30,7 @@ def test_build_service_uses_project_files(tmp_path: Path) -> None:
         IncomingMessage(
             chat_id=100,
             text=VALID_REQUEST,
-            user=UserProfile(username="alice"),
+            user=UserProfile(id=10, username="alice"),
         )
     )
 

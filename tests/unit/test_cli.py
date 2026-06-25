@@ -57,7 +57,7 @@ def test_doctor_reports_loaded_configuration(
     """Doctor should validate settings and whitelist without polling Telegram."""
 
     whitelist_path = tmp_path / "whitelist.csv"
-    whitelist_path.write_text("alice\nbob\n", encoding="utf-8")
+    whitelist_path.write_text("10\n20\n", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", "123:abc")
     monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
@@ -107,7 +107,7 @@ def test_health_reports_ok_for_valid_configuration(
     """Health should be concise for process managers."""
 
     whitelist_path = tmp_path / "whitelist.csv"
-    whitelist_path.write_text("alice\n", encoding="utf-8")
+    whitelist_path.write_text("10\n", encoding="utf-8")
     monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", "123:abc")
     monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
     monkeypatch.setenv("TELEGRAM_RESENDER_WHITELIST_PATH", str(whitelist_path))

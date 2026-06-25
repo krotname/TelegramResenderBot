@@ -83,7 +83,7 @@ Handler = Callable[[Any], Awaitable[None]]
 
 def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settings:
     whitelist_path = tmp_path / "whitelist.csv"
-    whitelist_path.write_text("alice\n", encoding="utf-8")
+    whitelist_path.write_text("10\n", encoding="utf-8")
     return Settings(
         bot_token="123:abc",
         forward_chat_id=200,
@@ -96,7 +96,7 @@ def _settings(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settin
 
 def _settings_with_routes(tmp_path: Path) -> Settings:
     whitelist_path = tmp_path / "whitelist.csv"
-    whitelist_path.write_text("alice\n", encoding="utf-8")
+    whitelist_path.write_text("10\n", encoding="utf-8")
     routes_path = tmp_path / "routes.json"
     routes_path.write_text(
         """
@@ -216,7 +216,7 @@ async def test_admin_can_reload_whitelist(tmp_path: Path) -> None:
     router = create_router(settings, service)
     handlers = _message_handlers(router)
     whitelist_path = settings.whitelist_path
-    whitelist_path.write_text("alice\nmallory\n", encoding="utf-8")
+    whitelist_path.write_text("10\n999\n", encoding="utf-8")
     admin = FakeMessage(user_id=10)
 
     await handlers["reload_whitelist"](admin)

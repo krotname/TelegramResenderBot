@@ -25,7 +25,7 @@ def test_conversation_commands_and_request_flow() -> None:
     """Mirror an operator conversation without Telegram SDK dependency."""
 
     service = ResenderService(
-        whitelist=Whitelist(["alice"]),
+        whitelist=Whitelist([10]),
         formatter=MessageFormatter(),
         request_accepted_message=REQUEST_ACCEPTED_MESSAGE,
         access_denied_message=RU_MESSAGES.access_denied_unknown,
@@ -55,7 +55,7 @@ def test_conversation_commands_and_request_flow() -> None:
             IncomingMessage(
                 chat_id=100,
                 text=VALID_REQUEST,
-                user=UserProfile(username="alice"),
+                user=UserProfile(id=10, username="alice"),
             )
         )
     )
@@ -64,7 +64,7 @@ def test_conversation_commands_and_request_flow() -> None:
             IncomingMessage(
                 chat_id=100,
                 text=VALID_REQUEST,
-                user=UserProfile(username="stranger"),
+                user=UserProfile(id=30, username="stranger"),
             )
         )
     )
@@ -73,7 +73,7 @@ def test_conversation_commands_and_request_flow() -> None:
             IncomingMessage(
                 chat_id=100,
                 text="",
-                user=UserProfile(username=None),
+                user=UserProfile(id=None, username=None),
             )
         )
     )
@@ -82,7 +82,7 @@ def test_conversation_commands_and_request_flow() -> None:
             IncomingMessage(
                 chat_id=100,
                 text="hi",
-                user=UserProfile(username="alice"),
+                user=UserProfile(id=10, username="alice"),
             )
         )
     )

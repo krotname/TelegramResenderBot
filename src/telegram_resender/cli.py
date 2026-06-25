@@ -76,7 +76,7 @@ def run_doctor(
     print(f"Locale: {settings.locale}", file=stdout)
     print(f"Forward chat id: {settings.forward_chat_id}", file=stdout)
     print(f"Whitelist path: {_display_path(settings.whitelist_path)}", file=stdout)
-    print(f"Whitelist users: {len(whitelist.usernames)}", file=stdout)
+    print(f"Whitelist users: {len(whitelist.user_ids)}", file=stdout)
     print(f"Routes path: {_display_optional_path(settings.routes_path)}", file=stdout)
     print(f"Routes: {len(routes)}", file=stdout)
     print(f"Storage path: {_display_path(settings.storage_path)}", file=stdout)
