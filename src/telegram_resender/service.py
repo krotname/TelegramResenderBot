@@ -95,7 +95,7 @@ class ResenderService:
         matching_routes = tuple(
             route
             for route in self._routes
-            if route.matches(username=message.user.username, text=message.text)
+            if route.matches(username=message.user.username, text=parsed_request.fields["building"])
         )
         if not matching_routes:
             return ForwardingDecision(

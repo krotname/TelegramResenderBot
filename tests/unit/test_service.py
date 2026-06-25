@@ -152,6 +152,51 @@ def test_service_routes_request_to_matching_destinations() -> None:
     assert service.render_forward_text_for_target(300, decision.forward_text).startswith("[all]")
 
 
+def test_service_matches_route_keywords_only_against_building_field() -> None:
+    """Keywords in free-form fields must not add unintended destinations."""
+
+    service = ResenderService(
+        whitelist=Whitelist(["alice"]),
+        formatter=MessageFormatter(),
+        request_accepted_message="ok",
+        access_denied_message="deny",
+        missing_username_message=RU_MESSAGES.access_denied_missing_username,
+        invalid_request_message=RU_MESSAGES.invalid_request,
+        missing_fields_message=RU_MESSAGES.missing_fields,
+        no_route_matched_message=RU_MESSAGES.no_route_matched,
+        locale="ru",
+        routes=(
+            RouteRule(
+                name="tower-a",
+                target_chat_id=200,
+                allowed_usernames=frozenset(),
+                keywords_any=("башня а",),
+                keywords_none=(),
+                template=None,
+            ),
+            RouteRule(
+                name="tower-b",
+                target_chat_id=300,
+                allowed_usernames=frozenset(),
+                keywords_any=("башня б",),
+                keywords_none=(),
+                template=None,
+            ),
+        ),
+    )
+
+    decision = service.handle_text(
+        IncomingMessage(
+            chat_id=1,
+            text=f"{VALID_REQUEST}\nКомментарий: пожалуйста не отправляйте в Башня Б",
+            user=UserProfile(username="alice"),
+        )
+    )
+
+    assert decision.should_forward is True
+    assert decision.target_chat_ids == (200,)
+
+
 def test_service_rejects_complete_request_when_no_route_matches() -> None:
     """A complete request should not be forwarded if all route filters reject it."""
 
