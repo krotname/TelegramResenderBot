@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import sys
 from asyncio import run as asyncio_run
 from collections.abc import Sequence
@@ -39,7 +40,7 @@ def run_bot(*, debug: bool = False) -> int:
 
     try:
         asyncio_run(run_polling())
-    except (ValidationError, FileNotFoundError, TelegramAPIError, ValueError) as exc:
+    except (ValidationError, OSError, sqlite3.Error, TelegramAPIError, ValueError) as exc:
         _print_startup_error(exc, debug=debug)
         return 2
     return 0
@@ -62,11 +63,14 @@ def run_doctor(
             else (default_route(settings.forward_chat_id),)
         )
         if storage_check:
-            RequestLog(settings.storage_path).check()
+            RequestLog(
+                settings.storage_path,
+                lease_seconds=settings.delivery_lease_seconds,
+            ).check()
     except ValidationError as exc:
         print(_format_validation_error(exc), file=stderr)
         return 2
-    except (FileNotFoundError, ValueError) as exc:
+    except (OSError, sqlite3.Error, ValueError) as exc:
         print(f"Configuration error: {exc}", file=stderr)
         print(_setup_hint(), file=stderr)
         return 2
@@ -83,6 +87,8 @@ def run_doctor(
     print(f"Storage check: {'OK' if storage_check else 'not requested'}", file=stdout)
     print(f"Admin users: {len(settings.admin_ids)}", file=stdout)
     print(f"Confirm before forward: {settings.confirm_before_forward}", file=stdout)
+    print(f"Pending request TTL: {settings.pending_request_ttl_seconds}s", file=stdout)
+    print(f"Delivery lease: {settings.delivery_lease_seconds}s", file=stdout)
     print(f"Polling timeout: {settings.polling_timeout}s", file=stdout)
     return 0
 
@@ -119,8 +125,11 @@ def run_health(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
         Whitelist.from_file(settings.whitelist_path)
         if settings.routes_path is not None:
             load_routes(settings.routes_path)
-        RequestLog(settings.storage_path).check()
-    except (ValidationError, FileNotFoundError, ValueError, OSError) as exc:
+        RequestLog(
+            settings.storage_path,
+            lease_seconds=settings.delivery_lease_seconds,
+        ).check()
+    except (ValidationError, OSError, sqlite3.Error, ValueError) as exc:
         print(f"health=error error={exc}", file=stderr)
         return 2
     print("health=ok", file=stdout)
@@ -138,8 +147,11 @@ def export_requests(
     try:
         settings = Settings()  # type: ignore[call-arg]
         since_date = date.fromisoformat(since)
-        records = RequestLog(settings.storage_path).records_since(since_date)
-    except (ValidationError, ValueError, OSError) as exc:
+        records = RequestLog(
+            settings.storage_path,
+            lease_seconds=settings.delivery_lease_seconds,
+        ).records_since(since_date)
+    except (ValidationError, OSError, sqlite3.Error, ValueError) as exc:
         print(f"Export error: {exc}", file=stderr)
         return 2
     export_records_csv(records, stdout)

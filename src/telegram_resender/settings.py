@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -9,6 +10,12 @@ from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from telegram_resender.messages import Locale, MessageCatalog, message_catalog
+from telegram_resender.telegram_limits import (
+    TELEGRAM_MESSAGE_MAX_UTF16_UNITS,
+    fits_telegram_message,
+)
+
+_BOT_TOKEN_PATTERN = re.compile(r"[1-9][0-9]*:[A-Za-z0-9_-]{35}", re.ASCII)
 
 
 class Settings(BaseSettings):
@@ -44,7 +51,7 @@ class Settings(BaseSettings):
     )
     storage_path: Path = Field(
         default=Path("telegram_resender.sqlite3"),
-        description="SQLite request delivery log path.",
+        description="SQLite delivery, lease, and pending-confirmation state path.",
         validation_alias=AliasChoices("TELEGRAM_RESENDER_STORAGE_PATH", "STORAGE_PATH"),
     )
     polling_timeout: int = Field(default=30, ge=1, le=120)
@@ -52,6 +59,8 @@ class Settings(BaseSettings):
     log_format: Literal["TEXT", "JSON"] = "TEXT"
     locale: Locale = "ru"
     confirm_before_forward: bool = False
+    pending_request_ttl_seconds: int = Field(default=900, ge=30, le=86_400)
+    delivery_lease_seconds: int = Field(default=300, ge=30, le=3_600)
     delivery_max_attempts: int = Field(default=3, ge=1, le=10)
     delivery_retry_backoff: float = Field(default=1.0, ge=0.0, le=60.0)
     admin_ids_raw: str = Field(
@@ -85,14 +94,71 @@ class Settings(BaseSettings):
         """Reject placeholder tokens before the application can start."""
 
         token = value.strip()
-        placeholders = {"*****", "changeme", "change-me", "your-token", "your_bot_token"}
+        placeholders = {
+            "*****",
+            "changeme",
+            "change-me",
+            "replace-me",
+            "your-token",
+            "your_bot_token",
+        }
         if not token or token.lower() in placeholders or set(token) == {"*"}:
             msg = "bot_token must be a real Telegram Bot API token, not a placeholder"
             raise ValueError(msg)
-        if ":" not in token:
-            msg = "bot_token must look like a Telegram Bot API token and contain ':'"
+        _bot_id, _separator, secret = token.partition(":")
+        if secret.lower() in placeholders or (secret and set(secret) == {"*"}):
+            msg = "bot_token must be a real Telegram Bot API token, not a placeholder"
+            raise ValueError(msg)
+        if _BOT_TOKEN_PATTERN.fullmatch(token) is None:
+            msg = (
+                "bot_token must look like a Telegram Bot API token: "
+                "positive numeric bot id, ':', and a 35-character ASCII secret"
+            )
             raise ValueError(msg)
         return token
+
+    @field_validator("request_accepted_message", "access_denied_message")
+    @classmethod
+    def validate_configurable_message(cls, value: str | None) -> str | None:
+        """Reject configured replies that Telegram cannot send as one message."""
+
+        if value is None or value == "":
+            return value
+        if not value.strip():
+            msg = "configured Telegram messages must contain non-whitespace text"
+            raise ValueError(msg)
+        if not fits_telegram_message(value):
+            msg = (
+                "configured Telegram messages must not exceed "
+                f"{TELEGRAM_MESSAGE_MAX_UTF16_UNITS} UTF-16 code units"
+            )
+            raise ValueError(msg)
+        return value
+
+    @field_validator("forward_chat_id")
+    @classmethod
+    def validate_forward_chat_id(cls, value: int) -> int:
+        """Reject Telegram's reserved zero chat ID before delivery."""
+
+        if value == 0:
+            msg = "forward_chat_id must be a non-zero Telegram chat ID"
+            raise ValueError(msg)
+        return value
+
+    @field_validator("admin_ids_raw")
+    @classmethod
+    def validate_admin_ids_raw(cls, value: str) -> str:
+        """Reject malformed admin IDs during settings validation, not command handling."""
+
+        try:
+            for part in value.split(","):
+                if part.strip():
+                    if int(part.strip()) <= 0:
+                        raise ValueError
+        except ValueError as exc:
+            msg = "admin IDs must be comma-separated integers greater than zero"
+            raise ValueError(msg) from exc
+        return value
 
     @field_validator("whitelist_path")
     @classmethod

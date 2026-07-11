@@ -44,6 +44,11 @@ class ResenderService:
 
         return len(self._whitelist.user_ids)
 
+    def is_authorized(self, user_id: int | None) -> bool:
+        """Return whether a Telegram user ID is authorized by the current whitelist."""
+
+        return user_id is not None and self._whitelist.contains(user_id)
+
     def reload_whitelist(self, path: Path) -> int:
         """Reload whitelist from disk and return the new user count."""
 
@@ -91,19 +96,30 @@ class ResenderService:
             )
 
         request_id = self._formatter.format_request_id(message)
-        matching_routes = tuple(
-            route
-            for route in self._routes
-            if route.matches(username=message.user.username, text=parsed_request.fields["building"])
-        )
+        legacy_request_id = self._formatter.format_legacy_request_id(message)
+        request_id_aliases = (legacy_request_id,) if legacy_request_id is not None else ()
+        matching_routes_by_target: dict[int, RouteRule] = {}
+        for route in self._routes:
+            if route.matches(
+                username=message.user.username,
+                user_id=message.user.id,
+                text=parsed_request.fields["building"],
+            ):
+                matching_routes_by_target.setdefault(route.target_chat_id, route)
+        matching_routes = tuple(matching_routes_by_target.values())
         if not matching_routes:
             return ForwardingDecision(
                 should_forward=False,
                 response_text=self._no_route_matched_message,
                 reason="no_route_matched",
                 request_id=request_id,
+                request_id_aliases=request_id_aliases,
             )
         forward_text = self._formatter.format_forward(message)
+        forward_payloads = tuple(
+            (route.target_chat_id, route.render_forward_text(forward_text))
+            for route in matching_routes
+        )
         return ForwardingDecision(
             should_forward=True,
             response_text=self._request_accepted_message,
@@ -111,6 +127,8 @@ class ResenderService:
             forward_text=forward_text,
             request_id=request_id,
             target_chat_ids=tuple(route.target_chat_id for route in matching_routes),
+            forward_payloads=forward_payloads,
+            request_id_aliases=request_id_aliases,
         )
 
     def render_forward_text_for_target(self, target_chat_id: int, default_text: str) -> str:

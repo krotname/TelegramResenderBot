@@ -47,3 +47,5 @@ class ForwardingDecision:
     forward_text: str | None = None
     request_id: str | None = None
     target_chat_ids: tuple[int, ...] = ()
+    forward_payloads: tuple[tuple[int, str], ...] = ()
+    request_id_aliases: tuple[str, ...] = ()

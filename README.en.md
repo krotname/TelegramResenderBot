@@ -31,7 +31,7 @@ The project is intentionally small and practical:
 - required-field validation and optional confirmation before forwarding
 - admin commands for status checks and whitelist reloads without restart
 - optional multi-route rules through `routes.json`
-- SQLite delivery log, retry/backoff, and request-id idempotency
+- SQLite delivery/pending state, retry/backoff, and request-id idempotency
 - Docker, docker-compose, systemd, and health checks for production
 - deterministic formatting of forwarded messages with request id and submitted time
 - strict startup validation for secrets and a `doctor` diagnostics command
@@ -69,8 +69,10 @@ All settings are read from environment variables (or `.env`).
 | `TELEGRAM_RESENDER_ROUTES_PATH` | no | JSON route config path |
 | `TELEGRAM_RESENDER_LOCALE` | no | `ru` or `en`, default `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | no | `true` to show a preview and wait for `/confirm` |
+| `TELEGRAM_RESENDER_PENDING_REQUEST_TTL_SECONDS` | no | preview lifetime in seconds, default `900` |
+| `TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS` | no | stale delivery/confirmation owner timeout, default `300` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | no | comma-separated Telegram user IDs allowed to run admin commands |
-| `TELEGRAM_RESENDER_STORAGE_PATH` | no | SQLite delivery log path, default `telegram_resender.sqlite3` |
+| `TELEGRAM_RESENDER_STORAGE_PATH` | no | SQLite delivery and pending-state path, default `telegram_resender.sqlite3` |
 | `TELEGRAM_RESENDER_DELIVERY_MAX_ATTEMPTS` | no | Telegram send attempts, default `3` |
 | `TELEGRAM_RESENDER_DELIVERY_RETRY_BACKOFF` | no | base retry delay in seconds |
 | `TELEGRAM_RESENDER_REQUEST_ACCEPTED_MESSAGE` | no | text returned on success |
@@ -100,10 +102,15 @@ Comment: meeting with facilities
 ```
 
 The bot currently accepts text only. Media and documents are not forwarded.
+If the formatted request or confirmation preview exceeds Telegram's message limit, the bot asks
+the user to shorten the comment or other fields.
 
 Required fields are building, arrival date/time, vehicle, and license plate. With
 `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD=true`, the bot shows a preview and only
-forwards after `/confirm`. `/cancel` discards the pending request.
+forwards after `/confirm`. With multiple previews, target one with
+`/confirm <request_id>` or `/cancel <request_id>`; commands without an ID apply to
+the latest request. Pending previews are stored in SQLite, survive process restarts,
+and expire after the configured TTL.
 
 ## Administration
 
@@ -128,7 +135,8 @@ If `TELEGRAM_RESENDER_ROUTES_PATH` is not set, the bot uses a single route from
     {
       "name": "tower-a",
       "target_chat_id": -1002222222222,
-      "allowed_usernames": ["building_admin"],
+      "allowed_user_ids": [123456789],
+      "allowed_usernames": [],
       "keywords_any": ["Tower A"],
       "keywords_none": ["cancel"],
       "template": "[{route}]\n{request}",
@@ -139,12 +147,22 @@ If `TELEGRAM_RESENDER_ROUTES_PATH` is not set, the bot uses a single route from
 ```
 
 The bot forwards a request to every enabled route matching the user and keyword filters.
+Use `allowed_user_ids` for authorization-sensitive routing. `allowed_usernames` remains
+accepted for migration compatibility, but Telegram usernames are mutable and this legacy
+filter must only be used as a non-security label in addition to the numeric-ID whitelist.
+If both fields are present, both filters must match. Duplicate JSON keys and malformed or
+empty filters are rejected at startup.
+When several rules match the same target chat, the first matching rule in the file wins so
+that one request produces one deterministic payload per destination.
 
 ## Delivery reliability
 
 The bot keeps a SQLite delivery log. Each `request_id + target_chat_id` pair stores
 `pending`, `delivered`, or `failed` status, sender, and the last error. Once a pair is
 delivered, processing the same request id again will not send a duplicate message.
+An atomic SQLite owner/version lease also blocks overlapping handlers from sending the same
+pair concurrently. A stale lease can be reclaimed after
+`TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS`.
 
 ```bash
 telegram-resender doctor --storage-check
@@ -163,8 +181,14 @@ cp whitelist.example.csv data/whitelist.csv
 docker compose up -d --build
 ```
 
-The systemd example is in [deploy/telegram-resender.service](deploy/telegram-resender.service).
-The production environment template is [.env.production.example](.env.production.example).
+The Docker environment template is [.env.production.example](.env.production.example).
+For systemd, use [deploy/telegram-resender.service](deploy/telegram-resender.service) together
+with [.env.systemd.example](.env.systemd.example); both use
+`/opt/telegram-resender/data` for mutable files.
+
+```bash
+cp .env.systemd.example /opt/telegram-resender/.env.production
+```
 
 For production logs, use:
 
@@ -192,6 +216,16 @@ gh attestation verify telegram_resender-*.whl --repo krotname/TelegramResenderBo
 - This is bot-based intake/forwarding, not a userbot.
 - The bot does not bypass protected or restricted Telegram chats.
 - Media, documents, voice messages, and polls are not forwarded as payloads yet.
+- Telegram delivery and the following SQLite commit cannot be one atomic operation. A process
+  crash after Telegram accepts a message but before the delivered state is committed can cause
+  one retry after the stale lease expires.
+- Sending a confirmation preview and publishing its SQLite pending row are likewise not one
+  transaction. A crash in that narrow interval can leave a visible preview that must be sent
+  again. Publishing happens after a successful Telegram response so a failed preview never
+  replaces an older confirmable request.
+- Known retry waits extend both ownership leases automatically. An individual Telegram API call
+  that hangs longer than `TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS` can still be reclaimed; set
+  the lease above the transport timeout used in the deployment.
 - AI rewrite, translation, and digest features are not implemented.
 - Hosted SaaS, mobile apps, and a web dashboard are outside the current self-hosted scope.
 

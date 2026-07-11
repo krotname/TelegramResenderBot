@@ -3,22 +3,27 @@
 ```text
 User Telegram Message -> app.incoming_from_message -> service.ResenderService.handle_text ->
   [whitelist.check + template parsing + required-field validation] ->
-    - missing username: bot replies with chat-id guidance
-    - unknown username: bot replies with private-bot denial
+    - missing sender ID: bot replies with chat-id guidance
+    - unknown user ID: bot replies with private-bot denial
     - incomplete request: bot replies with missing-field guidance
     - no route matched: bot replies without forwarding
     - allowed: formatter.MessageFormatter.format_forward -> delivery log -> matching target chats
-    - confirmation mode: preview -> /confirm -> target chat, or /cancel
+    - confirmation mode: successful preview -> SQLite pending state with TTL/version ownership ->
+      /confirm [request-id] -> atomic claim -> current-whitelist recheck -> target chat,
+      or /cancel [request-id]; pending state survives process restarts
 ```
 
 - `settings.Settings`: validates runtime environment and normalizes paths.
 - `whitelist.Whitelist`: file-backed access control.
 - `service.ResenderService`: pure decision function.
 - `requests.py`: request-template parsing and required-field validation.
-- `routes.py`: optional JSON route loading and route match predicates.
+- `routes.py`: strict duplicate-safe JSON route loading, numeric-ID authorization filters,
+  and legacy non-security username route labels.
 - `formatting.MessageFormatter`: stable forwarding format.
 - `delivery.py`: retry/backoff wrapper for Telegram send failures.
-- `storage.py`: SQLite delivery log and CSV export.
+- `storage.py`: SQLite delivery log, owner/version leases, persistent pending previews,
+  schema migration/validation, and CSV export.
+- `telegram_limits.py`: shared Telegram UTF-16 message-length rules.
 - `app.py`: adapter layer to aiogram (`Message` -> domain model).
 - `messages.py`: localized user-facing message catalogs.
 - `cli.py`: explicit application entrypoint, `doctor`, `health`, and CSV export commands.
@@ -38,8 +43,10 @@ Delivery flow:
 
 ```text
 matched route target -> storage.RequestLog.begin_delivery ->
-  already delivered: skip duplicate send
-  pending: delivery.send_with_retry -> mark delivered or failed
+  already delivered or actively leased: skip duplicate send
+  atomic owner/version lease: delivery.send_with_retry -> owner-checked delivered/failed state
+  stale lease: a newer version may reclaim ownership after the configured timeout
+health/doctor -> verify delivery, lease, pending, and sequence table schemas
 ```
 
 Deployment surface:

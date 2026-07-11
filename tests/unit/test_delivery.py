@@ -13,6 +13,7 @@ async def test_send_with_retry_retries_telegram_api_errors() -> None:
 
     attempts = 0
     sleeps: list[float] = []
+    lease_extensions: list[float] = []
 
     async def fake_send(chat_id: int, text: str) -> None:
         nonlocal attempts
@@ -33,10 +34,12 @@ async def test_send_with_retry_retries_telegram_api_errors() -> None:
         max_attempts=2,
         backoff_seconds=0.5,
         sleep=fake_sleep,
+        before_retry_wait=lease_extensions.append,
     )
 
     assert attempts == 2
     assert sleeps == [0.5]
+    assert lease_extensions == [0.5]
 
 
 @pytest.mark.asyncio

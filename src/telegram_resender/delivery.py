@@ -9,6 +9,7 @@ from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
 
 SendMessage = Callable[[int, str], Awaitable[object]]
 Sleep = Callable[[float], Awaitable[None]]
+BeforeRetryWait = Callable[[float], None]
 
 
 async def send_with_retry(
@@ -19,6 +20,7 @@ async def send_with_retry(
     max_attempts: int,
     backoff_seconds: float,
     sleep: Sleep = asyncio.sleep,
+    before_retry_wait: BeforeRetryWait | None = None,
 ) -> None:
     """Send a Telegram message with bounded retry/backoff for API failures."""
 
@@ -30,9 +32,15 @@ async def send_with_retry(
         except TelegramRetryAfter as exc:
             if attempt >= max_attempts:
                 raise
-            await sleep(float(exc.retry_after))
+            delay = float(exc.retry_after)
+            if before_retry_wait is not None:
+                before_retry_wait(delay)
+            await sleep(delay)
         except TelegramAPIError:
             if attempt >= max_attempts:
                 raise
-            await sleep(backoff_seconds * attempt)
+            delay = backoff_seconds * attempt
+            if before_retry_wait is not None:
+                before_retry_wait(delay)
+            await sleep(delay)
         attempt += 1
