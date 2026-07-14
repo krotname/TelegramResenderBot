@@ -42,3 +42,11 @@ def test_parse_user_id_rejects_usernames() -> None:
     assert parse_user_id(" 123 ") == 123
     with pytest.raises(ValueError):
         parse_user_id("alice")
+
+
+@pytest.mark.parametrize("value", [0, -1, True, "-100"])
+def test_parse_user_id_rejects_non_positive_values(value: int | str) -> None:
+    """Telegram sender user IDs are positive integers, never chat IDs or booleans."""
+
+    with pytest.raises(ValueError, match="positive integer"):
+        parse_user_id(value)

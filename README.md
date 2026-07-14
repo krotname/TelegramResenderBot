@@ -32,7 +32,7 @@
 - Проверка обязательных полей заявки и опциональное подтверждение перед пересылкой.
 - Админские команды для статуса и перезагрузки whitelist без рестарта.
 - Опциональные multi-route правила через `routes.json`.
-- SQLite delivery log, retry/backoff и идемпотентность по request id.
+- SQLite delivery/pending state, retry/backoff и идемпотентность по request id.
 - Docker, docker-compose, systemd и health-check для production.
 - Детерминированный формат пересылки с request id и временем заявки.
 
@@ -60,8 +60,10 @@ telegram-resender
 | `TELEGRAM_RESENDER_ROUTES_PATH` | нет | путь к JSON-файлу маршрутов |
 | `TELEGRAM_RESENDER_LOCALE` | нет | `ru` или `en`, по умолчанию `ru` |
 | `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD` | нет | `true`, чтобы показывать preview и ждать `/confirm` |
+| `TELEGRAM_RESENDER_PENDING_REQUEST_TTL_SECONDS` | нет | срок жизни preview в секундах, по умолчанию `900` |
+| `TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS` | нет | timeout stale-владельца доставки/подтверждения, по умолчанию `300` |
 | `TELEGRAM_RESENDER_ADMIN_IDS` | нет | Telegram user id администраторов через запятую |
-| `TELEGRAM_RESENDER_STORAGE_PATH` | нет | SQLite delivery log, по умолчанию `telegram_resender.sqlite3` |
+| `TELEGRAM_RESENDER_STORAGE_PATH` | нет | SQLite delivery/pending state, по умолчанию `telegram_resender.sqlite3` |
 | `TELEGRAM_RESENDER_DELIVERY_MAX_ATTEMPTS` | нет | попытки отправки в Telegram, по умолчанию `3` |
 | `TELEGRAM_RESENDER_DELIVERY_RETRY_BACKOFF` | нет | базовая задержка retry в секундах |
 | `TELEGRAM_RESENDER_LOG_LEVEL` | нет | `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
@@ -73,8 +75,8 @@ telegram-resender
 Формат whitelist (по одному неизменяемому числовому Telegram user ID в строке; ID можно узнать через `/whoami`):
 
 ```csv
-alice
-@bob
+123456789
+987654321
 ```
 
 ## Формат заявки
@@ -90,11 +92,15 @@ alice
 ```
 
 Пока бот принимает только текст. Медиа и документы не пересылаются.
+Если заявка со служебным заголовком или preview превышает лимит Telegram, бот попросит
+сократить комментарий или другие поля.
 
 Обязательные поля: объект/здание, дата и время прибытия, автомобиль, госномер.
 Если включить `TELEGRAM_RESENDER_CONFIRM_BEFORE_FORWARD=true`, бот покажет preview
-заявки и отправит ее администратору только после `/confirm`. Команда `/cancel`
-отменяет ожидающую подтверждения заявку.
+заявки и отправит ее администратору только после `/confirm`. Для нескольких preview
+можно указать ID: `/confirm <request_id>` или `/cancel <request_id>`; команды без ID
+относятся к последней заявке. Pending preview хранится в SQLite, переживает рестарт
+процесса и истекает через настроенный TTL.
 
 ## Администрирование
 
@@ -119,7 +125,8 @@ alice
     {
       "name": "tower-a",
       "target_chat_id": -1002222222222,
-      "allowed_usernames": ["building_admin"],
+      "allowed_user_ids": [123456789],
+      "allowed_usernames": [],
       "keywords_any": ["Башня А"],
       "keywords_none": ["отмена"],
       "template": "[{route}]\n{request}",
@@ -130,6 +137,13 @@ alice
 ```
 
 Заявка отправляется во все активные маршруты, где совпали пользователь и keyword-фильтры.
+Для маршрутизации с контролем доступа используйте `allowed_user_ids`. Поле
+`allowed_usernames` сохранено для миграционной совместимости, но Telegram username изменяем:
+этот legacy-фильтр допустим только как незащитная метка поверх общего числового whitelist.
+Если заданы оба поля, должны совпасть оба. Дубли JSON-ключей, пустые и некорректные
+фильтры отклоняются при старте.
+Если одному target chat соответствуют несколько правил, применяется первое совпавшее
+правило из файла: одна заявка формирует один детерминированный payload на destination.
 
 ## Надежность доставки
 
@@ -137,6 +151,9 @@ alice
 хранится статус `pending`, `delivered` или `failed`, отправитель и последняя ошибка.
 Если такая пара уже доставлена, повторная обработка того же request id не отправит
 сообщение второй раз.
+Атомарный SQLite lease с owner/version также не дает параллельным handler-задачам
+одновременно отправить одну пару. Stale lease можно занять заново после
+`TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS`.
 
 ```bash
 telegram-resender doctor --storage-check
@@ -155,8 +172,14 @@ copy whitelist.example.csv data\whitelist.csv
 docker compose up -d --build
 ```
 
-Systemd пример лежит в [deploy/telegram-resender.service](deploy/telegram-resender.service).
-Production env template: [.env.production.example](.env.production.example).
+Docker env template: [.env.production.example](.env.production.example). Для systemd
+используйте [deploy/telegram-resender.service](deploy/telegram-resender.service) вместе с
+[.env.systemd.example](.env.systemd.example): оба используют
+`/opt/telegram-resender/data` для изменяемых файлов.
+
+```bash
+cp .env.systemd.example /opt/telegram-resender/.env.production
+```
 
 Для production-логов включите:
 
@@ -184,6 +207,16 @@ gh attestation verify telegram_resender-*.whl --repo krotname/TelegramResenderBo
 - Это bot-based intake/forwarding, не userbot.
 - Бот не обходит protected/restricted Telegram-чаты.
 - Медиа, документы, voice и polls пока не пересылаются как payload.
+- Отправку в Telegram и следующий SQLite commit невозможно сделать одной атомарной операцией.
+  Если процесс завершится после приема сообщения Telegram, но до записи `delivered`, возможна
+  одна повторная отправка после истечения stale lease.
+- Отправка confirmation preview и публикация pending-строки в SQLite тоже не являются одной
+  транзакцией. Сбой в узком промежутке может оставить видимый preview, который придется отправить
+  заново. Pending публикуется после успешного ответа Telegram, поэтому неотправленный preview не
+  заменяет более старую подтверждаемую заявку.
+- Известные retry waits автоматически продлевают оба lease. Но отдельный Telegram API call,
+  зависший дольше `TELEGRAM_RESENDER_DELIVERY_LEASE_SECONDS`, может быть занят заново; задавайте
+  lease больше transport timeout текущего deployment.
 - AI rewrite/translate/digest не реализованы.
 - Hosted SaaS, mobile app и web dashboard не входят в текущую self-hosted область.
 

@@ -113,9 +113,4 @@ jobs:
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --require-hashes -r requirements-audit.lock
       - name: Pip audit
-        run: |
-          # aiogram 3.28.2 pins aiohttp<3.14 while these CVEs are fixed in aiohttp 3.14.0.
-          # Remove these ignores once aiogram allows aiohttp>=3.14.
-          python -m pip_audit \
-            --ignore-vuln CVE-2026-34993 \
-            --ignore-vuln CVE-2026-47265
+        run: python -m pip_audit

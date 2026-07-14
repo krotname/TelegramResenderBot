@@ -12,16 +12,24 @@ def parse_user_id(value: int | str | None) -> int | None:
 
     if value is None:
         return None
+    if isinstance(value, bool):
+        msg = f"Telegram user id must be a positive integer: {value!r}"
+        raise ValueError(msg)
     if isinstance(value, int):
-        return value
-    stripped = value.strip()
-    if not stripped:
-        return None
-    try:
-        return int(stripped)
-    except ValueError as exc:
-        msg = f"Telegram user id must be an integer: {value!r}"
-        raise ValueError(msg) from exc
+        parsed = value
+    else:
+        stripped = value.strip()
+        if not stripped:
+            return None
+        try:
+            parsed = int(stripped)
+        except ValueError as exc:
+            msg = f"Telegram user id must be a positive integer: {value!r}"
+            raise ValueError(msg) from exc
+    if parsed <= 0:
+        msg = f"Telegram user id must be a positive integer: {value!r}"
+        raise ValueError(msg)
+    return parsed
 
 
 def normalize_username(username: str | None) -> str | None:

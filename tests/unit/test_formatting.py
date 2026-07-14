@@ -1,5 +1,6 @@
 """Unit tests for message rendering rules."""
 
+import hashlib
 from datetime import UTC, datetime
 
 from telegram_resender.formatting import MessageFormatter
@@ -26,3 +27,32 @@ def test_message_formatter_includes_source_and_author() -> None:
     assert "From: Alex M (@TestUser)" in rendered
     assert "Source chat: 1001" in rendered
     assert "Tower A" in rendered
+
+
+def test_fallback_request_id_uses_immutable_user_id() -> None:
+    """Fallback IDs must not collide across users or change with mutable usernames."""
+
+    formatter = MessageFormatter()
+    first = IncomingMessage(
+        chat_id=-100,
+        text="same request",
+        user=UserProfile(id=10, username="old-name"),
+    )
+    renamed = IncomingMessage(
+        chat_id=-100,
+        text="same request",
+        user=UserProfile(id=10, username="new-name"),
+    )
+    other_user = IncomingMessage(
+        chat_id=-100,
+        text="same request",
+        user=UserProfile(id=20, username="old-name"),
+    )
+
+    assert formatter.format_request_id(first) == formatter.format_request_id(renamed)
+    assert formatter.format_request_id(first) != formatter.format_request_id(other_user)
+
+    legacy_digest = hashlib.sha256(
+        f"{first.chat_id}|{first.user.username or ''}|{first.text}".encode()
+    ).hexdigest()
+    assert formatter.format_legacy_request_id(first) == f"local-{legacy_digest[:12]}"

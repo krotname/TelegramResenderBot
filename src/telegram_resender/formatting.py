@@ -36,6 +36,16 @@ class MessageFormatter:
         if message.message_id is not None:
             return f"tg-{message.chat_id}-{message.message_id}"
         fingerprint = hashlib.sha256(
+            f"{message.chat_id}|{message.user.id!r}|{message.text}".encode()
+        ).hexdigest()
+        return f"local-{fingerprint[:12]}"
+
+    def format_legacy_request_id(self, message: IncomingMessage) -> str | None:
+        """Return the legacy fallback id so persisted deliveries remain idempotent."""
+
+        if message.message_id is not None:
+            return None
+        fingerprint = hashlib.sha256(
             f"{message.chat_id}|{message.user.username or ''}|{message.text}".encode()
         ).hexdigest()
         return f"local-{fingerprint[:12]}"

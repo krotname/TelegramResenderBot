@@ -3,6 +3,7 @@
     {
       "name": "default",
       "target_chat_id": -1001234567890,
+      "allowed_user_ids": [],
       "allowed_usernames": [],
       "keywords_any": [],
       "keywords_none": [],
@@ -11,7 +12,8 @@
     {
       "name": "tower-a",
       "target_chat_id": -1002222222222,
-      "allowed_usernames": ["building_admin"],
+      "allowed_user_ids": [123456789],
+      "allowed_usernames": [],
       "keywords_any": ["Башня А", "Tower A"],
       "keywords_none": ["отмена", "cancel"],
       "template": "[{route}]\n{request}",

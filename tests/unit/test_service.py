@@ -109,6 +109,13 @@ def test_service_authorizes_by_user_id_not_username() -> None:
     assert reclaimed_username.reason == "unknown_user_id"
 
 
+def test_access_denied_guidance_references_numeric_user_id() -> None:
+    """Denial guidance must describe the numeric-ID whitelist actually in use."""
+
+    assert "user ID" in RU_MESSAGES.access_denied_unknown
+    assert "/whoami" in RU_MESSAGES.access_denied_unknown
+
+
 def test_service_reports_missing_template_fields() -> None:
     """A labeled but incomplete request should name the missing fields."""
 
@@ -179,6 +186,129 @@ def test_service_routes_request_to_matching_destinations() -> None:
     assert decision.target_chat_ids == (200, 300)
     assert decision.forward_text is not None
     assert service.render_forward_text_for_target(300, decision.forward_text).startswith("[all]")
+
+
+def test_service_uses_template_from_the_route_that_actually_matched() -> None:
+    """Shared target chats must not pick a template from a non-matching route."""
+
+    service = ResenderService(
+        whitelist=Whitelist([10]),
+        formatter=MessageFormatter(),
+        request_accepted_message="ok",
+        access_denied_message="deny",
+        missing_username_message=RU_MESSAGES.access_denied_missing_username,
+        invalid_request_message=RU_MESSAGES.invalid_request,
+        missing_fields_message=RU_MESSAGES.missing_fields,
+        no_route_matched_message=RU_MESSAGES.no_route_matched,
+        locale="ru",
+        routes=(
+            RouteRule(
+                name="bob-route",
+                target_chat_id=200,
+                allowed_usernames=frozenset({"bob"}),
+                keywords_any=(),
+                keywords_none=(),
+                template="[bob]\n{request}",
+            ),
+            RouteRule(
+                name="alice-route",
+                target_chat_id=200,
+                allowed_usernames=frozenset({"alice"}),
+                keywords_any=(),
+                keywords_none=(),
+                template="[alice]\n{request}",
+            ),
+        ),
+    )
+
+    decision = service.handle_text(
+        IncomingMessage(chat_id=1, text=VALID_REQUEST, user=UserProfile(id=10, username="alice"))
+    )
+
+    assert decision.should_forward is True
+    assert len(decision.forward_payloads) == 1
+    assert decision.forward_payloads[0][0] == 200
+    assert decision.forward_payloads[0][1].startswith("[alice]")
+
+
+def test_numeric_route_filter_cannot_be_bypassed_by_changing_username() -> None:
+    """A globally allowed user must not enter another numeric-ID route by renaming."""
+
+    service = ResenderService(
+        whitelist=Whitelist([10, 20]),
+        formatter=MessageFormatter(),
+        request_accepted_message="ok",
+        access_denied_message="deny",
+        missing_username_message=RU_MESSAGES.access_denied_missing_username,
+        invalid_request_message=RU_MESSAGES.invalid_request,
+        missing_fields_message=RU_MESSAGES.missing_fields,
+        no_route_matched_message=RU_MESSAGES.no_route_matched,
+        locale="ru",
+        routes=(
+            RouteRule(
+                name="private",
+                target_chat_id=200,
+                allowed_usernames=frozenset(),
+                keywords_any=(),
+                keywords_none=(),
+                template=None,
+                allowed_user_ids=frozenset({10}),
+            ),
+        ),
+    )
+
+    allowed = service.handle_text(
+        IncomingMessage(chat_id=1, text=VALID_REQUEST, user=UserProfile(id=10, username="new"))
+    )
+    renamed = service.handle_text(
+        IncomingMessage(chat_id=1, text=VALID_REQUEST, user=UserProfile(id=20, username="new"))
+    )
+
+    assert allowed.should_forward is True
+    assert renamed.should_forward is False
+    assert renamed.reason == "no_route_matched"
+
+
+def test_first_matching_route_wins_for_shared_target() -> None:
+    """One target receives one deterministic payload even when multiple rules match."""
+
+    service = ResenderService(
+        whitelist=Whitelist([10]),
+        formatter=MessageFormatter(),
+        request_accepted_message="ok",
+        access_denied_message="deny",
+        missing_username_message=RU_MESSAGES.access_denied_missing_username,
+        invalid_request_message=RU_MESSAGES.invalid_request,
+        missing_fields_message=RU_MESSAGES.missing_fields,
+        no_route_matched_message=RU_MESSAGES.no_route_matched,
+        locale="ru",
+        routes=(
+            RouteRule(
+                name="first",
+                target_chat_id=200,
+                allowed_usernames=frozenset(),
+                keywords_any=(),
+                keywords_none=(),
+                template="[first]\n{request}",
+            ),
+            RouteRule(
+                name="second",
+                target_chat_id=200,
+                allowed_usernames=frozenset(),
+                keywords_any=(),
+                keywords_none=(),
+                template="[second]\n{request}",
+            ),
+        ),
+    )
+
+    decision = service.handle_text(
+        IncomingMessage(chat_id=1, text=VALID_REQUEST, user=UserProfile(id=10, username="alice"))
+    )
+
+    assert decision.target_chat_ids == (200,)
+    assert len(decision.forward_payloads) == 1
+    assert decision.forward_payloads[0][1].startswith("[first]")
 
 
 def test_service_matches_route_keywords_only_against_building_field() -> None:

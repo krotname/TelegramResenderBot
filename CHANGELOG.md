@@ -2,6 +2,12 @@
 
 ## 1.6.2
 - Harden storage, message handling, dependency locks, Docker metadata, and CI/release checks after repository audit.
+- Add atomic versioned SQLite delivery leases with stale-owner recovery.
+- Persist confirmation previews and ownership versions in SQLite across process restarts.
+- Add immutable `allowed_user_ids` route filters while retaining username filters for migration.
+- Reject duplicate route JSON keys and normalized-empty username filters.
+- Add bounded retry guidance after failed confirmed delivery.
+- Split Docker and systemd environment templates so their data paths match each runtime.
 
 ## 1.6.1
 - Apply `ruff format` to match the CI formatter gate after the `1.6.0` release.
