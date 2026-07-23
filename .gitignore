@@ -9,5 +9,21 @@ build/
 *.egg-info/
 .mypy_cache/
 whitelist.csv
-!.env.example
 *.sqlite3
+
+# --- Secrets --------------------------------------------------------------
+# Real environment files hold TELEGRAM_RESENDER_BOT_TOKEN. The README and the
+# `doctor` CLI hint both tell operators to create `.env` and paste a live token
+# into it, so these files must never be committable.
+.env
+.env.*
+
+# ...but the placeholder-only templates stay tracked.
+!.env.example
+!.env.*.example
+
+# Legacy top-level configuration module. A `config.py` at the repository root
+# was committed in 2020 with live bot tokens and later deleted from the tree.
+# The leading slash anchors this to the repository root only: a real package
+# module such as `src/telegram_resender/config.py` must stay visible to git.
+/config.py

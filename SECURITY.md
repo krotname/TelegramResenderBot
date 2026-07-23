@@ -27,6 +27,51 @@ The maintainer aims to acknowledge valid reports within 48 hours and provide a r
 - Tokens and credentials must not be stored in source files.
 - Startup validation blocks obvious placeholder credentials.
 
+### Git-ignored secret files
+
+`.gitignore` keeps local credential files out of commits:
+
+- `.env` and every `.env.*` variant (for example `.env.production`) are ignored,
+  because they hold the real `TELEGRAM_RESENDER_BOT_TOKEN`.
+- The placeholder templates `.env.example`, `.env.production.example`, and
+  `.env.systemd.example` are re-included by negation patterns and stay tracked.
+- The legacy repository-root `/config.py` is ignored. The pattern is anchored to
+  the root, so a package module such as `src/telegram_resender/config.py` would
+  still be tracked and scanned.
+
+Never commit `whitelist.csv` or a populated `.env`; copy the `*.example`
+templates instead and keep the filled-in copies local.
+
+### Secret scanning in CI
+
+The `Secret scan` workflow (`.github/workflows/gitleaks.yml`) runs gitleaks on
+every push and on pull requests against the default branch, over the full git
+history (`fetch-depth: 0`). Rules come from the upstream gitleaks defaults,
+extended by `.gitleaks.toml`.
+
+The only allowlist entry is the anchored path `^config\.py$`, which covers a
+remediated 2020 leak in the repository-root `config.py`. Those tokens are
+revoked and the commits remain reachable through immutable `refs/pull/*` refs,
+so they cannot be removed. The anchors are load-bearing: an unanchored pattern
+would also excuse a future `src/telegram_resender/config.py`, which is precisely
+what the scan must keep catching.
+
+If the workflow reports a finding, treat the credential as compromised: revoke
+and reissue it first, then clean up the source.
+
+### Authorization uses immutable numeric user IDs
+
+The whitelist trust boundary is expressed in immutable numeric Telegram user IDs
+(`whitelist.csv`, one ID per line; `/whoami` reports a user's own ID). Populate
+it with numeric IDs only.
+
+Do not authorize by `@username`. Telegram usernames are mutable and can be
+released and re-registered by a different account, so a username-based rule
+silently transfers access to whoever claims the handle next. The route field
+`allowed_usernames` is an additional routing filter applied after the numeric
+whitelist check has already granted access; it is not an authorization
+mechanism and must not be used as one.
+
 ## Supply-chain controls
 
 - Runtime, development, bootstrap, and audit dependencies are installed from hash-locked requirement files.

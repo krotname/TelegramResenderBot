@@ -1,0 +1,28 @@
+# Gitleaks configuration for TelegramResenderBot.
+#
+# The upstream default ruleset is extended rather than replaced, so detectors
+# added by future gitleaks releases (including the Telegram bot token rule)
+# apply automatically without editing this file.
+
+title = "TelegramResenderBot secret scanning"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Remediated historical finding: the 2020 legacy top-level config.py"
+paths = [
+  # A top-level `config.py` was committed in 2020 carrying two live Telegram
+  # bot tokens and was later deleted from the tree. Both tokens have been
+  # REVOKED. The offending commits stay reachable through immutable
+  # `refs/pull/*` refs, so a history rewrite cannot remove them; without this
+  # entry every full-history scan would fail forever on an already-remediated
+  # finding and the workflow would be switched off or ignored.
+  #
+  # The pattern is ANCHORED on purpose. `^config\.py$` excuses ONLY the file at
+  # the repository root. An unanchored `config\.py` would also match paths such
+  # as `src/telegram_resender/config.py`, silently suppressing a NEW secret in
+  # a future config module - exactly the recurrence this scan exists to catch.
+  # Do not remove the `^` and `$`.
+  '''^config\.py$''',
+]
