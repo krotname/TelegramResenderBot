@@ -1,0 +1,34 @@
+name: Secret scan
+
+on:
+  push:
+    # Every branch, not only the default one: catching a leaked credential on
+    # the branch it was pushed to is the point of this workflow.
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history: a secret committed once stays a secret in that commit.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          # Inline PR comments would require `pull-requests: write`; this job
+          # stays read-only and reports through the job summary and the log.
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          # GITLEAKS_LICENSE is only required for organization-owned repos.

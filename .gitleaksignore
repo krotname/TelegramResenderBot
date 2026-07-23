@@ -1,0 +1,5 @@
+# Revoked Telegram bot tokens from the legacy repository-root config.py.
+# Fingerprints bind each exception to one exact historical commit, path, rule,
+# and line. A future token in config.py or any other file remains detectable.
+61a90b52f6e9e6ccc25f77204292866d90592ba0:config.py:telegram-bot-token:2
+6700db60b9bfb84d2ee8dd925850daf5b5ecf3ff:config.py:telegram-bot-token:2
