@@ -47,14 +47,14 @@ templates instead and keep the filled-in copies local.
 The `Secret scan` workflow (`.github/workflows/gitleaks.yml`) runs gitleaks on
 every push and on pull requests against the default branch, over the full git
 history (`fetch-depth: 0`). Rules come from the upstream gitleaks defaults,
-extended by `.gitleaks.toml`.
+extended by `.gitleaks.toml`. The repository also defines an explicit Telegram
+Bot API token detector because the gitleaks version used by CI does not include
+one in its default ruleset.
 
-The only allowlist entry is the anchored path `^config\.py$`, which covers a
-remediated 2020 leak in the repository-root `config.py`. Those tokens are
-revoked and the commits remain reachable through immutable `refs/pull/*` refs,
-so they cannot be removed. The anchors are load-bearing: an unanchored pattern
-would also excuse a future `src/telegram_resender/config.py`, which is precisely
-what the scan must keep catching.
+`.gitleaksignore` contains two fingerprints for the revoked historical findings
+in the repository-root `config.py`. Each exception is bound to an exact commit,
+path, rule, and line. No path is globally allowlisted, so a future token in
+`config.py` or any other file still fails the scan.
 
 If the workflow reports a finding, treat the credential as compromised: revoke
 and reissue it first, then clean up the source.
