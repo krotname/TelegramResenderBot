@@ -96,6 +96,7 @@ class PendingRequest:
     forward_text_by_chat_id: tuple[tuple[int, str], ...]
     sender_user_id: int
     sender_username: str | None
+    route_match_text: str | None
     expires_at: float
     owner_token: str | None = None
     owner_version: int = 0
@@ -316,6 +317,7 @@ class PendingRequestStore:
         forward_text_by_chat_id: tuple[tuple[int, str], ...],
         sender_user_id: int | None,
         sender_username: str | None,
+        route_match_text: str,
     ) -> PendingRequest:
         """Publish a visible preview, replacing only an unclaimed duplicate ID."""
 
@@ -369,7 +371,13 @@ class PendingRequestStore:
                     version,
                     request_id,
                     json.dumps(request_id_aliases, ensure_ascii=False),
-                    json.dumps(forward_text_by_chat_id, ensure_ascii=False),
+                    json.dumps(
+                        {
+                            "payloads": forward_text_by_chat_id,
+                            "route_match_text": route_match_text,
+                        },
+                        ensure_ascii=False,
+                    ),
                     sender_user_id,
                     sender_username,
                     expires_at,
@@ -382,6 +390,7 @@ class PendingRequestStore:
             forward_text_by_chat_id=forward_text_by_chat_id,
             sender_user_id=user_id,
             sender_username=sender_username,
+            route_match_text=route_match_text,
             expires_at=expires_at,
         )
 
@@ -706,7 +715,16 @@ def _owns_delivery_lease(
 def _pending_from_row(row: tuple[Any, ...]) -> PendingRequest:
     try:
         aliases_value = json.loads(str(row[2]))
-        payloads_value = json.loads(str(row[3]))
+        stored_payloads = json.loads(str(row[3]))
+        if isinstance(stored_payloads, dict):
+            payloads_value = stored_payloads.get("payloads")
+            route_match_text = stored_payloads.get("route_match_text")
+            if not isinstance(route_match_text, str):
+                raise ValueError
+        else:
+            # Legacy rows lack the context needed for safe route revalidation.
+            payloads_value = stored_payloads
+            route_match_text = None
         if not isinstance(aliases_value, list) or not all(
             isinstance(item, str) for item in aliases_value
         ):
@@ -727,6 +745,7 @@ def _pending_from_row(row: tuple[Any, ...]) -> PendingRequest:
             forward_text_by_chat_id=tuple((int(item[0]), str(item[1])) for item in payloads_value),
             sender_user_id=int(row[4]),
             sender_username=str(row[5]) if row[5] is not None else None,
+            route_match_text=route_match_text,
             expires_at=float(row[6]),
             owner_token=str(row[7]) if row[7] is not None else None,
             owner_version=int(row[8]),

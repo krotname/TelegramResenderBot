@@ -162,7 +162,7 @@ def _settings(
     )
 
 
-def _settings_with_routes(tmp_path: Path) -> Settings:
+def _settings_with_routes(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settings:
     whitelist_path = tmp_path / "whitelist.csv"
     whitelist_path.write_text("10\n", encoding="utf-8")
     routes_path = tmp_path / "routes.json"
@@ -184,6 +184,7 @@ def _settings_with_routes(tmp_path: Path) -> Settings:
         routes_path=routes_path,
         storage_path=tmp_path / "requests.sqlite3",
         admin_ids_raw="10",
+        confirm_before_forward=confirm_before_forward,
     )
 
 
@@ -598,6 +599,33 @@ async def test_confirm_rechecks_current_whitelist(tmp_path: Path) -> None:
 
     confirm = FakeMessage(text="/confirm tg-100-55", bot=bot)
     await handlers["confirm_request"](confirm)
+
+    assert confirm.answers == [settings.messages.access_denied_unknown]
+    assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_confirm_rechecks_current_route_acl_after_restart(tmp_path: Path) -> None:
+    """A persisted preview must not bypass a route ACL changed during restart."""
+
+    settings = _settings_with_routes(tmp_path, confirm_before_forward=True)
+    routes_path = settings.routes_path
+    assert routes_path is not None
+    routes_path.write_text(
+        '{"routes":[{"name":"private","target_chat_id":300,"allowed_user_ids":[10]}]}',
+        encoding="utf-8",
+    )
+    first_handlers = _message_handlers(create_router(settings, build_service(settings)))
+    bot = FakeBot()
+    await first_handlers["forward_text"](FakeMessage(bot=bot))
+
+    routes_path.write_text(
+        '{"routes":[{"name":"private","target_chat_id":300,"allowed_user_ids":[999]}]}',
+        encoding="utf-8",
+    )
+    restarted_handlers = _message_handlers(create_router(settings, build_service(settings)))
+    confirm = FakeMessage(text="/confirm tg-100-55", bot=bot)
+    await restarted_handlers["confirm_request"](confirm)
 
     assert confirm.answers == [settings.messages.access_denied_unknown]
     assert bot.sent_messages == []
