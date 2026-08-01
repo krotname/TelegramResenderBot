@@ -16,5 +16,6 @@ useDefault = true
 [[rules]]
 id = "telegram-bot-token"
 description = "Telegram Bot API token"
-regex = '''\b[0-9]{8,12}:[A-Za-z0-9_-]{35}\b'''
+regex = '''\b([0-9]{8,12}:[A-Za-z0-9_-]{35})($|[^A-Za-z0-9_-])'''
+secretGroup = 1
 tags = ["telegram", "token"]

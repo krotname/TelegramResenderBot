@@ -139,6 +139,25 @@ class ResenderService:
                 return route.render_forward_text(default_text)
         return default_text
 
+    def routes_still_authorize(
+        self,
+        *,
+        user_id: int,
+        username: str | None,
+        route_match_text: str | None,
+        target_chat_ids: tuple[int, ...],
+    ) -> bool:
+        """Revalidate a persisted routing decision against the current rules."""
+
+        if route_match_text is None or not self.is_authorized(user_id):
+            return False
+        currently_allowed_targets = {
+            route.target_chat_id
+            for route in self._routes
+            if route.matches(username=username, user_id=user_id, text=route_match_text)
+        }
+        return set(target_chat_ids).issubset(currently_allowed_targets)
+
     def _looks_like_request(self, text: str) -> bool:
         """Reject empty greetings that are clearly not actionable requests."""
 
