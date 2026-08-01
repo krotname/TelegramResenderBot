@@ -182,7 +182,10 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
             route_match_text=pending.route_match_text,
             target_chat_ids=tuple(chat_id for chat_id, _ in pending.forward_text_by_chat_id),
         ):
-            pending_requests.discard_all(pending_key)
+            if service.is_authorized(pending.sender_user_id):
+                pending_requests.complete(pending_key, pending)
+            else:
+                pending_requests.discard_all(pending_key)
             await message.answer(_access_denied_text(message, settings))
             return
         try:

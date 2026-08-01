@@ -632,6 +632,49 @@ async def test_confirm_rechecks_current_route_acl_after_restart(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
+async def test_route_denial_discards_only_the_selected_pending_request(tmp_path: Path) -> None:
+    """A removed route must not erase a newer confirmation for a route that remains valid."""
+
+    settings = _settings_with_routes(tmp_path, confirm_before_forward=True)
+    routes_path = settings.routes_path
+    assert routes_path is not None
+    routes_path.write_text(
+        """{
+          "routes": [
+            {"name":"tower","target_chat_id":300,"keywords_any":["Башня А"]},
+            {"name":"office","target_chat_id":200,"keywords_any":["Корпус Б"]}
+          ]
+        }""",
+        encoding="utf-8",
+    )
+    handlers = _message_handlers(create_router(settings, build_service(settings)))
+    bot = FakeBot()
+    await handlers["forward_text"](FakeMessage(bot=bot, message_id=55))
+    await handlers["forward_text"](
+        FakeMessage(
+            text=VALID_REQUEST.replace("Башня А", "Корпус Б"),
+            bot=bot,
+            message_id=56,
+        )
+    )
+
+    routes_path.write_text(
+        '{"routes":[{"name":"office","target_chat_id":200,"keywords_any":["Корпус Б"]}]}',
+        encoding="utf-8",
+    )
+    handlers = _message_handlers(create_router(settings, build_service(settings)))
+
+    denied = FakeMessage(text="/confirm tg-100-55", bot=bot)
+    await handlers["confirm_request"](denied)
+    retained = FakeMessage(text="/confirm tg-100-56", bot=bot)
+    await handlers["confirm_request"](retained)
+
+    assert denied.answers == [settings.messages.access_denied_unknown]
+    assert retained.answers == [RU_MESSAGES.request_confirmed.format(request_id="tg-100-56")]
+    assert [chat_id for chat_id, _ in bot.sent_messages] == [200]
+
+
+@pytest.mark.asyncio
 async def test_expired_pending_request_cannot_be_confirmed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

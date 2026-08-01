@@ -317,7 +317,7 @@ class PendingRequestStore:
         forward_text_by_chat_id: tuple[tuple[int, str], ...],
         sender_user_id: int | None,
         sender_username: str | None,
-        route_match_text: str,
+        route_match_text: str | None = None,
     ) -> PendingRequest:
         """Publish a visible preview, replacing only an unclaimed duplicate ID."""
 
@@ -719,7 +719,7 @@ def _pending_from_row(row: tuple[Any, ...]) -> PendingRequest:
         if isinstance(stored_payloads, dict):
             payloads_value = stored_payloads.get("payloads")
             route_match_text = stored_payloads.get("route_match_text")
-            if not isinstance(route_match_text, str):
+            if route_match_text is not None and not isinstance(route_match_text, str):
                 raise ValueError
         else:
             # Legacy rows lack the context needed for safe route revalidation.
