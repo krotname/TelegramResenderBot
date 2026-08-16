@@ -914,17 +914,6 @@ def _ensure_storage_schema(path: Path) -> None:
         )
 
 
-def _validate_delivery_schema(connection: sqlite3.Connection) -> None:
-    """Backward-compatible helper retained for focused schema tests."""
-
-    _validate_table_schema(
-        connection,
-        table="request_deliveries",
-        expected_columns=_EXPECTED_DELIVERY_COLUMNS,
-        expected_primary_key=_EXPECTED_DELIVERY_UNIQUE_INDEX,
-    )
-
-
 def _validate_table_schema(
     connection: sqlite3.Connection,
     *,

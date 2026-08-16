@@ -313,6 +313,15 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
             except DeliveryInProgressError:
                 await message.answer(messages.request_in_progress)
                 return
+            except Exception:
+                LOGGER.exception("Request delivery failed")
+                try:
+                    await message.answer(
+                        messages.request_delivery_failed.format(request_id=decision.request_id)
+                    )
+                except Exception:
+                    LOGGER.exception("Failed to send delivery failure notice")
+                raise
             LOGGER.info("Forwarded message from Telegram user")
         else:
             LOGGER.info("Rejected message: %s", decision.reason)

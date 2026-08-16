@@ -190,3 +190,49 @@ def test_run_bot_formats_sqlite_startup_errors(
     captured = capsys.readouterr()
     assert "Startup error: unable to open database file" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_health_does_not_echo_invalid_bot_token(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Configuration errors must not leak the bot token into logs."""
+
+    whitelist_path = tmp_path / "whitelist.csv"
+    whitelist_path.write_text("10\n", encoding="utf-8")
+    leaked_token = f"123456789:{'S' * 34}"
+    monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", leaked_token)
+    monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
+    monkeypatch.setenv("TELEGRAM_RESENDER_WHITELIST_PATH", str(whitelist_path))
+    monkeypatch.setenv("TELEGRAM_RESENDER_STORAGE_PATH", str(tmp_path / "requests.sqlite3"))
+    stdout = StringIO()
+    stderr = StringIO()
+
+    assert cli.run_health(stdout=stdout, stderr=stderr) == 2
+
+    assert stdout.getvalue() == ""
+    assert "health=error" in stderr.getvalue()
+    assert leaked_token not in stderr.getvalue()
+
+
+def test_export_requests_does_not_echo_invalid_bot_token(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CSV export must not leak the bot token when settings fail validation."""
+
+    whitelist_path = tmp_path / "whitelist.csv"
+    whitelist_path.write_text("10\n", encoding="utf-8")
+    leaked_token = f"123456789:{'S' * 34}"
+    monkeypatch.setenv("TELEGRAM_RESENDER_BOT_TOKEN", leaked_token)
+    monkeypatch.setenv("TELEGRAM_RESENDER_FORWARD_CHAT_ID", "100")
+    monkeypatch.setenv("TELEGRAM_RESENDER_WHITELIST_PATH", str(whitelist_path))
+    monkeypatch.setenv("TELEGRAM_RESENDER_STORAGE_PATH", str(tmp_path / "requests.sqlite3"))
+    stdout = StringIO()
+    stderr = StringIO()
+
+    assert cli.export_requests(since="2026-01-01", stdout=stdout, stderr=stderr) == 2
+
+    assert stdout.getvalue() == ""
+    assert "Configuration error" in stderr.getvalue()
+    assert leaked_token not in stderr.getvalue()

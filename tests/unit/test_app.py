@@ -95,6 +95,13 @@ class BlockingBot(FakeBot):
         await super().send_message(chat_id, text)
 
 
+class AlwaysFailingBot(FakeBot):
+    """Bot double whose deliveries never succeed."""
+
+    async def send_message(self, chat_id: int, text: str) -> None:
+        raise RuntimeError("permanent delivery failure")
+
+
 class FakeMessage:
     """Minimal message double exposing only the fields handlers read."""
 
@@ -329,6 +336,22 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
     assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_forward_text_reports_delivery_failure_to_sender(tmp_path: Path) -> None:
+    """A failed delivery without confirmation must still answer the sender."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = AlwaysFailingBot()
+    message = FakeMessage(bot=bot)
+
+    with pytest.raises(RuntimeError, match="permanent delivery failure"):
+        await handler(message)
+
+    assert message.answers == [RU_MESSAGES.request_delivery_failed.format(request_id="tg-100-55")]
 
 
 @pytest.mark.asyncio
