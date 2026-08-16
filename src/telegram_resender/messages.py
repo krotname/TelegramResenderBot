@@ -42,6 +42,7 @@ class MessageCatalog:
     request_cancelled: str
     request_confirmation_failed_retry: str
     request_confirmation_failed_expired: str
+    request_delivery_failed: str
     no_pending_request: str
     admin_access_denied: str
     admin_status: str
@@ -119,6 +120,9 @@ RU_MESSAGES = MessageCatalog(
         "Не удалось передать заявку {request_id}, а срок ее подтверждения уже истек. "
         "Отправьте заявку заново."
     ),
+    request_delivery_failed=(
+        "Не удалось передать заявку {request_id} администратору. Попробуйте отправить ее позже."
+    ),
     no_pending_request="Нет заявки, ожидающей подтверждения.",
     admin_access_denied="Эта команда доступна только администратору.",
     admin_status=(
@@ -188,6 +192,9 @@ EN_MESSAGES = MessageCatalog(
     request_confirmation_failed_expired=(
         "Request {request_id} could not be delivered and its confirmation window has expired. "
         "Send the request again."
+    ),
+    request_delivery_failed=(
+        "Request {request_id} could not be delivered to the administrator. Try sending it later."
     ),
     no_pending_request="There is no request waiting for confirmation.",
     admin_access_denied="This command is available to administrators only.",

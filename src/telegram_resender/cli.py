@@ -129,7 +129,12 @@ def run_health(stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
             settings.storage_path,
             lease_seconds=settings.delivery_lease_seconds,
         ).check()
-    except (ValidationError, OSError, sqlite3.Error, ValueError) as exc:
+    except ValidationError as exc:
+        # str(ValidationError) echoes the offending input values (including the bot token).
+        print("health=error error=invalid_configuration", file=stderr)
+        print(_format_validation_error(exc), file=stderr)
+        return 2
+    except (OSError, sqlite3.Error, ValueError) as exc:
         print(f"health=error error={exc}", file=stderr)
         return 2
     print("health=ok", file=stdout)
@@ -151,7 +156,11 @@ def export_requests(
             settings.storage_path,
             lease_seconds=settings.delivery_lease_seconds,
         ).records_since(since_date)
-    except (ValidationError, OSError, sqlite3.Error, ValueError) as exc:
+    except ValidationError as exc:
+        # str(ValidationError) echoes the offending input values (including the bot token).
+        print(_format_validation_error(exc), file=stderr)
+        return 2
+    except (OSError, sqlite3.Error, ValueError) as exc:
         print(f"Export error: {exc}", file=stderr)
         return 2
     export_records_csv(records, stdout)
