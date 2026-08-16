@@ -121,7 +121,9 @@ RU_MESSAGES = MessageCatalog(
         "Отправьте заявку заново."
     ),
     request_delivery_failed=(
-        "Не удалось передать заявку {request_id} администратору. Попробуйте отправить ее позже."
+        "Не удалось подтвердить передачу заявки {request_id}. Часть адресатов могла ее уже "
+        "получить, поэтому не отправляйте заявку повторно: сообщите администратору номер "
+        "{request_id}."
     ),
     no_pending_request="Нет заявки, ожидающей подтверждения.",
     admin_access_denied="Эта команда доступна только администратору.",
@@ -194,7 +196,8 @@ EN_MESSAGES = MessageCatalog(
         "Send the request again."
     ),
     request_delivery_failed=(
-        "Request {request_id} could not be delivered to the administrator. Try sending it later."
+        "Delivery of request {request_id} could not be confirmed. Some recipients may already "
+        "have it, so do not send the request again: report id {request_id} to an administrator."
     ),
     no_pending_request="There is no request waiting for confirmation.",
     admin_access_denied="This command is available to administrators only.",
