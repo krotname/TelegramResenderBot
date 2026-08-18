@@ -9,3 +9,5 @@ dist
 *.egg-info
 *.sqlite3
 whitelist.csv
+.env
+.env.*
