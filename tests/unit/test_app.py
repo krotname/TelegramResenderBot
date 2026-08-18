@@ -95,6 +95,13 @@ class BlockingBot(FakeBot):
         await super().send_message(chat_id, text)
 
 
+class AlwaysFailingBot(FakeBot):
+    """Bot double whose deliveries never succeed."""
+
+    async def send_message(self, chat_id: int, text: str) -> None:
+        raise RuntimeError("permanent delivery failure")
+
+
 class FakeMessage:
     """Minimal message double exposing only the fields handlers read."""
 
@@ -162,7 +169,7 @@ def _settings(
     )
 
 
-def _settings_with_routes(tmp_path: Path) -> Settings:
+def _settings_with_routes(tmp_path: Path, *, confirm_before_forward: bool = False) -> Settings:
     whitelist_path = tmp_path / "whitelist.csv"
     whitelist_path.write_text("10\n", encoding="utf-8")
     routes_path = tmp_path / "routes.json"
@@ -184,6 +191,7 @@ def _settings_with_routes(tmp_path: Path) -> Settings:
         routes_path=routes_path,
         storage_path=tmp_path / "requests.sqlite3",
         admin_ids_raw="10",
+        confirm_before_forward=confirm_before_forward,
     )
 
 
@@ -328,6 +336,22 @@ async def test_forward_text_sends_whitelisted_message(tmp_path: Path) -> None:
     assert bot.sent_messages[0][0] == settings.forward_chat_id
     assert "Alice Tester (@alice)" in bot.sent_messages[0][1]
     assert "Request id: tg-100-55" in bot.sent_messages[0][1]
+
+
+@pytest.mark.asyncio
+async def test_forward_text_reports_delivery_failure_to_sender(tmp_path: Path) -> None:
+    """A failed delivery without confirmation must still answer the sender."""
+
+    settings = _settings(tmp_path)
+    router = create_router(settings, build_service(settings))
+    handler = _message_handlers(router)["forward_text"]
+    bot = AlwaysFailingBot()
+    message = FakeMessage(bot=bot)
+
+    with pytest.raises(RuntimeError, match="permanent delivery failure"):
+        await handler(message)
+
+    assert message.answers == [RU_MESSAGES.request_delivery_failed.format(request_id="tg-100-55")]
 
 
 @pytest.mark.asyncio
@@ -601,6 +625,76 @@ async def test_confirm_rechecks_current_whitelist(tmp_path: Path) -> None:
 
     assert confirm.answers == [settings.messages.access_denied_unknown]
     assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_confirm_rechecks_current_route_acl_after_restart(tmp_path: Path) -> None:
+    """A persisted preview must not bypass a route ACL changed during restart."""
+
+    settings = _settings_with_routes(tmp_path, confirm_before_forward=True)
+    routes_path = settings.routes_path
+    assert routes_path is not None
+    routes_path.write_text(
+        '{"routes":[{"name":"private","target_chat_id":300,"allowed_user_ids":[10]}]}',
+        encoding="utf-8",
+    )
+    first_handlers = _message_handlers(create_router(settings, build_service(settings)))
+    bot = FakeBot()
+    await first_handlers["forward_text"](FakeMessage(bot=bot))
+
+    routes_path.write_text(
+        '{"routes":[{"name":"private","target_chat_id":300,"allowed_user_ids":[999]}]}',
+        encoding="utf-8",
+    )
+    restarted_handlers = _message_handlers(create_router(settings, build_service(settings)))
+    confirm = FakeMessage(text="/confirm tg-100-55", bot=bot)
+    await restarted_handlers["confirm_request"](confirm)
+
+    assert confirm.answers == [settings.messages.access_denied_unknown]
+    assert bot.sent_messages == []
+
+
+@pytest.mark.asyncio
+async def test_route_denial_discards_only_the_selected_pending_request(tmp_path: Path) -> None:
+    """A removed route must not erase a newer confirmation for a route that remains valid."""
+
+    settings = _settings_with_routes(tmp_path, confirm_before_forward=True)
+    routes_path = settings.routes_path
+    assert routes_path is not None
+    routes_path.write_text(
+        """{
+          "routes": [
+            {"name":"tower","target_chat_id":300,"keywords_any":["Башня А"]},
+            {"name":"office","target_chat_id":200,"keywords_any":["Корпус Б"]}
+          ]
+        }""",
+        encoding="utf-8",
+    )
+    handlers = _message_handlers(create_router(settings, build_service(settings)))
+    bot = FakeBot()
+    await handlers["forward_text"](FakeMessage(bot=bot, message_id=55))
+    await handlers["forward_text"](
+        FakeMessage(
+            text=VALID_REQUEST.replace("Башня А", "Корпус Б"),
+            bot=bot,
+            message_id=56,
+        )
+    )
+
+    routes_path.write_text(
+        '{"routes":[{"name":"office","target_chat_id":200,"keywords_any":["Корпус Б"]}]}',
+        encoding="utf-8",
+    )
+    handlers = _message_handlers(create_router(settings, build_service(settings)))
+
+    denied = FakeMessage(text="/confirm tg-100-55", bot=bot)
+    await handlers["confirm_request"](denied)
+    retained = FakeMessage(text="/confirm tg-100-56", bot=bot)
+    await handlers["confirm_request"](retained)
+
+    assert denied.answers == [settings.messages.access_denied_unknown]
+    assert retained.answers == [RU_MESSAGES.request_confirmed.format(request_id="tg-100-56")]
+    assert [chat_id for chat_id, _ in bot.sent_messages] == [200]
 
 
 @pytest.mark.asyncio

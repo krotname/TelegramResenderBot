@@ -15,6 +15,7 @@ from telegram_resender import __version__
 from telegram_resender.delivery import send_with_retry
 from telegram_resender.formatting import MessageFormatter
 from telegram_resender.models import IncomingMessage, UserProfile
+from telegram_resender.requests import parse_request
 from telegram_resender.routes import default_route, load_routes
 from telegram_resender.service import ResenderService
 from telegram_resender.settings import Settings
@@ -175,8 +176,16 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
         if pending is None:
             await message.answer(messages.no_pending_request)
             return
-        if not service.is_authorized(pending.sender_user_id):
-            pending_requests.discard_all(pending_key)
+        if not service.routes_still_authorize(
+            user_id=pending.sender_user_id,
+            username=pending.sender_username,
+            route_match_text=pending.route_match_text,
+            target_chat_ids=tuple(chat_id for chat_id, _ in pending.forward_text_by_chat_id),
+        ):
+            if service.is_authorized(pending.sender_user_id):
+                pending_requests.complete(pending_key, pending)
+            else:
+                pending_requests.discard_all(pending_key)
             await message.answer(_access_denied_text(message, settings))
             return
         try:
@@ -281,6 +290,7 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
                     forward_text_by_chat_id=forward_payloads,
                     sender_user_id=incoming.user.id,
                     sender_username=incoming.user.username,
+                    route_match_text=parse_request(incoming.text).fields["building"],
                 )
                 return
             bot = message.bot
@@ -303,6 +313,15 @@ def create_router(settings: Settings, service: ResenderService) -> Router:
             except DeliveryInProgressError:
                 await message.answer(messages.request_in_progress)
                 return
+            except Exception:
+                LOGGER.exception("Request delivery failed")
+                try:
+                    await message.answer(
+                        messages.request_delivery_failed.format(request_id=decision.request_id)
+                    )
+                except Exception:
+                    LOGGER.exception("Failed to send delivery failure notice")
+                raise
             LOGGER.info("Forwarded message from Telegram user")
         else:
             LOGGER.info("Rejected message: %s", decision.reason)
@@ -371,12 +390,13 @@ async def _deliver_payloads(
         if lease is None:
             LOGGER.info("Skipped already delivered request %s to %s", request_id, chat_id)
             continue
+        owned_lease: DeliveryLease = lease
 
         def renew_ownership(
             wait_seconds: float,
-            owned_lease: DeliveryLease = lease,
+            delivery_lease: DeliveryLease = owned_lease,
         ) -> None:
-            if not request_log.renew_delivery(owned_lease, wait_seconds=wait_seconds):
+            if not request_log.renew_delivery(delivery_lease, wait_seconds=wait_seconds):
                 msg = "Telegram delivery ownership was superseded before retry"
                 raise RuntimeError(msg)
             if pending_keepalive is not None and not pending_keepalive(wait_seconds):
