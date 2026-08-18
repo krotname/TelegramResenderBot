@@ -112,5 +112,6 @@ jobs:
           python -m pip install --require-hashes -r requirements-bootstrap.lock
           python -m pip install --require-hashes -r requirements-dev.lock
           python -m pip install --require-hashes -r requirements-audit.lock
+          python -m pip install --no-deps -r requirements-audit.in
       - name: Pip audit
         run: python -m pip_audit
