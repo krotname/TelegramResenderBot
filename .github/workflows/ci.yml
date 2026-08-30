@@ -87,6 +87,7 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage
           if-no-files-found: ignore
+          retention-days: 7
       - name: Generate coverage XML
         if: matrix.python-version == '3.12' && github.event_name == 'push'
         run: coverage xml -o coverage.xml
